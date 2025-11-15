@@ -1,4 +1,4 @@
-# gusteau-nlp
+# Gusteau, The NLP Project
 
 ## Dataset
 
