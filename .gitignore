@@ -1,3 +1,26 @@
+# Macos
+.DS_Store
+.AppleDouble
+.LSOverride
+
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+
+# Windows
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+~
+.nfs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
