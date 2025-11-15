@@ -1,0 +1,6 @@
+nltk
+pandas
+utils
+kaggle
+numpy
+rapidfuzz
