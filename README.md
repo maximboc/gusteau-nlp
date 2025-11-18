@@ -1,5 +1,14 @@
 # Gusteau, The NLP Project
 
+## 🚧 Prerequisites
+### 1. Gemini API Key
+
+- Create a [Google API Key](https://ai.google.dev/gemini-api/docs?hl=fr)
+- Create a .env file at the root of the project:
+    ```
+    GEMINI_API_KEY=your_api_key
+    ```
+
 ## Dataset
 
 | Attribute            | Description |
