@@ -7,7 +7,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 import os
 
-from src.eda.utils_preprocessing import correct_term, parse_range, unit_categories, unit_conversions, standardize_measurements, standardize_temperature
+from src.data_prep.utils_preprocessing import correct_term, parse_range, unit_categories, unit_conversions, standardize_measurements, standardize_temperature
 
 ps = PorterStemmer()
 
@@ -216,6 +216,6 @@ def process_data(save=True):
     
     if (save):
         os.makedirs('./data/processed', exist_ok=True)
-        data.to_csv('./data/processed/preprocessed_recipe.csv', index=False)
+        data.to_csv('./data/preprocessed/preprocessed_recipe.csv', index=False)
     return data
     
