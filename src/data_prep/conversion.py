@@ -26,10 +26,10 @@ def conversion(row):
     instruction = (
         "Generate a complete recipe using the following information.\n\n"
         f"Name: {row['name']}\n"
-        f"Ingredients: {row['ingredients_text']}\n"
-        f"Tags: {row['tags_text']}\n"
-        f"Calories: {row['calories']}\n"
-        f"Description: {row['description']}"
+        #f"Ingredients: {row['ingredients_text']}\n"
+        # f"Tags: {row['tags_text']}\n"
+        # f"Calories: {row['calories']}\n"
+        # f"Description: {row['description']}"
     )
 
     output = row["steps_string_standardize"]

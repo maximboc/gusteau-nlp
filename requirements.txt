@@ -6,4 +6,6 @@ peft
 rapidfuzz
 torch
 transformers
-bitsandbytes>=0.43.1
+bitsandbytes
+google.generativeai
+ollama
