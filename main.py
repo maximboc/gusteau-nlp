@@ -18,7 +18,7 @@ def main():
     # Finetuning :
     print("Starting the different qwen-05b finetuning process...")
     print("1. QLORA finetuning process...")
-    qlora_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset)
+    #qlora_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset)
 
 if __name__ == "__main__":
     main()
