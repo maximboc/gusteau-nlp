@@ -216,6 +216,6 @@ def process_data(save=True):
     
     if (save):
         os.makedirs('./data/processed', exist_ok=True)
-        data.to_csv('./data/processed/preprocessed_recipe.csv', index=False)
+        data.to_csv('./data/preprocessed/preprocessed_recipe.csv', index=False)
     return data
     

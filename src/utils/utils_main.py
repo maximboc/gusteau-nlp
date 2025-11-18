@@ -4,7 +4,7 @@ import pandas as pd
 from src.data_prep.preprocessing import process_data
 
 RAW_CSV_PATH = './data/RAW_recipes.csv'
-PREPROCESSED_CSV_PATH = './data/processed/preprocessed_recipe.csv'
+PREPROCESSED_CSV_PATH = './data/preprocessed/preprocessed_recipe.csv'
 DOWNLOAD_DIR = './data'
 
 def download_raw_recipe():
