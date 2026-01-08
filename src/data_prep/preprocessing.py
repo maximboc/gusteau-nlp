@@ -2,6 +2,7 @@ import pandas as pd
 import ast
 import re
 import nltk
+from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
@@ -50,9 +51,10 @@ def remove_stop_word(recipes):
     stop_words.update(additional) 
     cleaned_recipes = []
         
-    for recipe in recipes:
+    for recipe in tqdm(recipes, desc="🧹 Removing stopwords"):
 
         recipe = recipe.lower()
+
         recipe = re.sub(r'[^a-z\s]', '', recipe)
         
         recipe_words = recipe.split()
@@ -178,17 +180,23 @@ def expand_nutrition_column(data):
     return data
 
 def process_data(save=True):
+    # Enable pandas progress bars
+    tqdm.pandas()
+    
+    print("   Loading CSV...")
     data  = pd.read_csv('./data/RAW_recipes.csv')
     data.set_index('id', inplace=True)
     columns = ["tags", "steps", "ingredients", "nutrition"]
 
+    print("   Parsing columns...")
     for i in columns:
-        data[i] = data[i].apply(ast.literal_eval)
+        data[i] = data[i].progress_apply(ast.literal_eval)
 
     data.drop(columns=["contributor_id", "submitted"], inplace=True, errors="ignore")
     data.dropna(subset=["name"], inplace=True)
     data = data[data['minutes'] < 300]
 
+    print("   Cleaning names...")
     data['name'] = remove_stop_word(data['name'])
 
     data.dropna(subset=['name', 'description'], inplace=True)
@@ -196,7 +204,9 @@ def process_data(save=True):
     data = normalize_columns(data)
     
     data["steps_strings"] = data["steps"].apply(lambda x : ' '.join(x))
-    data["steps_string_standardize"] = data["steps_strings"].apply(standardize_units)
+    
+    print("   Standardizing units (this takes a while)...")
+    data["steps_string_standardize"] = data["steps_strings"].progress_apply(standardize_units)
 
     data["ingredients_text"] = data["ingredients"].apply(lambda x: ' '.join(x))
     data["ingredients_text"] = data["ingredients"].astype(str)
@@ -215,7 +225,7 @@ def process_data(save=True):
     data.reset_index(inplace=True)
     
     if (save):
-        os.makedirs('./data/processed', exist_ok=True)
+        os.makedirs('./data/preprocessed', exist_ok=True)
         data.to_csv('./data/preprocessed/preprocessed_recipe.csv', index=False)
     return data
     
