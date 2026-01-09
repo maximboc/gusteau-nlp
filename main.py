@@ -19,6 +19,11 @@ def main():
     
     dataset_conversion(data)
     full_dataset = load_dataset("json", data_files=jsonl_path)["train"]
+    
+    subset_size = 1000
+    if len(full_dataset) > subset_size:
+        full_dataset = full_dataset.select(range(subset_size))
+        
     dataset_dict = full_dataset.train_test_split(test_size=0.05, seed=42)
     train_dataset = dataset_dict["train"]
     test_dataset = dataset_dict["test"]
@@ -26,15 +31,15 @@ def main():
     
     # Finetuning :
     print("\n--- Step 3: Model Finetuning ---")
-    """
+
     if not os.path.exists(adapter_save_path):
         print("Starting QLoRA training...")
         # We pass the FULL dataset_dict so the trainer has access to ["train"] and ["test"]
         qlora_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset_dict, output_dir=adapter_save_path)
     else:
         print(f"Model found at '{adapter_save_path}'. Skipping training. (Delete folder to retrain)")
+
     """
-    
     # Evaluating :
     print("\n--- Step 4: Benchmarking ---")
     
@@ -64,6 +69,7 @@ def main():
         test_dataset=golden_dataset, 
         model_configs=competitors
     )
+    """
 
 
 if __name__ == "__main__":

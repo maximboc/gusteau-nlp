@@ -59,7 +59,7 @@ def qlora_finetuning(model_name, dataset, output_dir="models/qwen-recipe-qlora")
         learning_rate=2e-4,
         logging_steps=10,
         save_steps=200,
-        num_train_epochs=2,
+        num_train_epochs=1,
         bf16=(device_kwargs["torch_dtype"]==torch.bfloat16),
         fp16=(device_kwargs["torch_dtype"]==torch.float16),
         optim="paged_adamw_8bit" if use_qlora else "adamw_torch",
