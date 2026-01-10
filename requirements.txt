@@ -9,3 +9,5 @@ transformers
 bitsandbytes
 google.generativeai
 ollama
+matplotlib
+streamlit
