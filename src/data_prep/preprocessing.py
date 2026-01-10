@@ -189,7 +189,7 @@ def process_data(save=True):
     data.dropna(subset=["name"], inplace=True)
     data = data[data['minutes'] < 300]
 
-    data['name'] = remove_stop_word(data['name'])
+    # data['name'] = remove_stop_word(data['name'])
 
     data.dropna(subset=['name', 'description'], inplace=True)
     data.reset_index(inplace=True)
@@ -215,7 +215,7 @@ def process_data(save=True):
     data.reset_index(inplace=True)
     
     if (save):
-        os.makedirs('./data/processed', exist_ok=True)
+        os.makedirs('./data/preprocessed', exist_ok=True)
         data.to_csv('./data/preprocessed/preprocessed_recipe.csv', index=False)
     return data
     
