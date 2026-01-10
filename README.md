@@ -1,7 +1,7 @@
 # Gusteau, The CookBro 👨‍🍳
 
 <div align="center">
-    <img src="assets/img/gusteau.png" alt="Gusteau Logo" width="500"/>
+    <img src="assets/img/Gusteau.png" alt="Gusteau Logo" width="500"/>
 </div>
 
 **Gusteau** is an NLP project dedicated to generating creative and accurate cooking recipes. Leveraging state-of-the-art Large Language Models (LLMs), the project explores various fine-tuning techniques to adapt general-purpose models into specialized culinary assistants.

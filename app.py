@@ -93,12 +93,12 @@ def load_model_and_tokenizer(selected_model_key):
 st.title("Gusteau, The CookBro")
 
 # Add Image under title
-if os.path.exists("assets/img/gusteau.png"):
+if os.path.exists("assets/img/Gusteau.png"):
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("assets/img/gusteau.png", width=500)
+        st.image("assets/img/Gusteau.png", width=500)
 else:
-    st.warning("⚠️ Gusteau image not found at assets/img/gusteau.png")
+    st.warning("⚠️ Gusteau image not found at assets/img/Gusteau.png")
 
 st.markdown("""
 Welcome to Gusteau's! Create custom recipes using our AI models.
