@@ -70,8 +70,8 @@ def qlora_finetuning(model_name, dataset, output_dir="models/qwen-recipe-qlora")
             {"role": "assistant", "content": example['output']}
         ]
         text = tokenizer.apply_chat_template(messages, tokenize=False)
-        # Max length reduced to 512
-        return tokenizer(text, max_length=512, truncation=True)
+        # Max length increased to 1024 to handle ingredients + steps
+        return tokenizer(text, max_length=1024, truncation=True)
 
     print("Tokenizing and formatting dataset...")
     tokenized_dataset = dataset.map(

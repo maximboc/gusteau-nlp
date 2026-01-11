@@ -163,8 +163,9 @@ typo_corrections = {
 }
 
 def fahrenheit_to_celsius(f):
-    """Convert Fahrenheit to Celsius and round to 2 decimal places"""
-    return round((f - 32) * 5.0 / 9.0, 2)
+    """Convert Fahrenheit to Celsius and round to nearest integer"""
+    return int(round((f - 32) * 5.0 / 9.0))
+
 def standardize_temperature(text):
     """
     Process temperature mentions in text, converting Fahrenheit to Celsius,
@@ -175,14 +176,14 @@ def standardize_temperature(text):
     # Handle this BEFORE Fahrenheit to avoid double conversion
     c_pattern = r'(\d+(?:\.\d+)?)\s*(?:degrees?\s*c|°c|\^c|celsius)'
     result_text = re.sub(c_pattern, 
-                     lambda m: f"{float(m.group(1))} {STANDARD_TEMP}", 
+                     lambda m: f"{int(float(m.group(1)))} {STANDARD_TEMP}", 
                      text, 
                      flags=re.IGNORECASE)
     
     # Also handle direct C notation
     direct_c_pattern = r'(\d+(?:\.\d+)?)([°]?c\b)'
     result_text = re.sub(direct_c_pattern, 
-                     lambda m: f"{float(m.group(1))} {STANDARD_TEMP}", 
+                     lambda m: f"{int(float(m.group(1)))} {STANDARD_TEMP}", 
                      result_text, 
                      flags=re.IGNORECASE)
     
@@ -259,13 +260,13 @@ def standardize_measurements(text):
     # Keep the dimension format (NxM) but convert each number from inches to cm
     dimension_pattern = r'(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(?:"|″|inch(?:es)?)?'
     result = re.sub(dimension_pattern, 
-                    lambda m: f"{float(m.group(1)) * 2.54}x{float(m.group(2)) * 2.54} cm", 
+                    lambda m: f"{round(float(m.group(1)) * 2.54, 1)}x{round(float(m.group(2)) * 2.54, 1)} cm", 
                     text)
     
     # Handle single inch measurements
     inch_pattern = r'(\d+(?:\.\d+)?)(?:"|″|inch(?:es)?)'
     result = re.sub(inch_pattern, 
-                    lambda m: f"{float(m.group(1)) * 2.54} cm", 
+                    lambda m: f"{round(float(m.group(1)) * 2.54, 1)} cm", 
                     result)
     
     return result

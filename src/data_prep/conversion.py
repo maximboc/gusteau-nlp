@@ -26,10 +26,12 @@ def dataset_conversion(df):
 
 def conversion(row):
     instruction = (
-        "Generate a complete recipe using the following information.\n\n"
-        f"Name: {row['name']}\n"
-        f"Ingredients: {row['ingredients_text']}\n" 
+        f"Create a detailed recipe for {row['name']}."
     )
 
-    output = row["steps_string_standardize"]
+    output = (
+        f"Ingredients:\n{row['ingredients_text']}\n\n"
+        f"Instructions:\n{row['steps_string_standardize']}"
+    )
+    
     return {"instruction": instruction, "output": output}

@@ -24,6 +24,10 @@ Currently, the project features a **Qwen 2.5 0.5B** model fine-tuned using **QLo
 ### 2. Run the Pipeline (CLI)
 To run the full data processing, training, and benchmark pipeline:
 
+```bash
+python main.py
+```
+
 ### 3. Run the Application
 Start the interactive Streamlit dashboard to generate recipes:
 
@@ -32,12 +36,21 @@ streamlit run app.py
 ```
 You can choose between the **Base Model** (General purpose) and **Qwen (QLoRA)** (Specialized) via the sidebar.
 
+---
 
+## 🏗️ Project Architecture
 
-```bash
-python main.py
-```
+This project is structured around three main pillars:
+1.  **Data Processing:** Cleaning and formatting the dataset.
+2.  **Fine-Tuning:** Adapting LLMs using efficient techniques like QLoRA.
+3.  **Evaluation:** Rigorous testing using an "LLM-as-a-Judge" approach.
 
+### 📂 Directory Structure
+- `data/`: Contains raw and preprocessed datasets.
+- `models/`: Stores model adapters and configurations.
+- `notebooks/`: Jupyter notebooks for EDA and experiments.
+- `src/`: Source code for data prep, training, and evaluation.
+- `img/`: Visualizations and assets.
 ---
 
 ## 📊 Dataset & Exploratory Data Analysis (EDA)
@@ -69,78 +82,82 @@ Before training, we analyzed the dataset to understand the distribution of ingre
 
 ## 🧪 Preprocessing
 
-This section details the preprocessing steps applied to the dataset.
+This section details the preprocessing pipeline designed to transform raw data into a high-quality training set for Large Language Models.
 
-### 3.1. Removing Columns and Rows
-The first step in our preprocessing was to remove non-relevant columns for our exploratory data analysis (EDA). For example, we excluded the `contributor_id` column (which identifies the author of the recipe) and the `submitted` column which indicates the submission date, as they did not serve our analytical objectives.
+### 3.1. Filtering and Cleaning
+The first step involved cleaning the dataset to remove noise and outliers. We excluded non-relevant metadata columns (such as `contributor_id` and `submitted` date) to focus strictly on culinary content.
 
-Next, we removed recipes with a total preparation time greater or equal than 5 hours, considering them outliers. This step eliminated approximately 10,000 recipes from the original dataset of around 231,000 entries.
+Additionally, we filtered out recipes with extreme preparation times (≥ 5 hours), removing approximately 10,000 outliers from the original dataset of 231,000 entries to ensure the model focuses on standard home-cooking recipes.
 
-### 3.2. Lemmatizer & Stop-Word Removing
-We then lemmatized the text in the `name` column using the `WordNetLemmatizer` of the `nltk` library and removed stopwords. Additionally, we used a custom list of over 400 irrelevant or noisy words, such as names like "ashley" or "aston", to further clean the data.
+### 3.2. Title Normalization
+We processed the recipe names to create concise and canonical titles. This involved:
+*   **Lemmatization:** Using `WordNetLemmatizer` to normalize words.
+*   **Stop-word Removal:** Removing standard English stopwords.
+*   **Noise Filtering:** applying a custom exclusion list of over 400 non-descriptive terms (e.g., user names like "ashley", or emotional fillers like "yummy").
 
-**Examples of Name Cleaned into Concise Title**
+**Examples of Name Normalization**
 
-| Before Cleaning               | After Cleaning        |
+| Original Title                | Normalized Title      |
 | :---------------------------- | :-------------------- |
-| OH MY GOD ITS SO AMAZINGGGGG  | potatoes with chicken |
-| potatoes with chicken yummy yummy | potatoes with chicken |
+| OH MY GOD ITS SO AMAZINGGGGG potatoes with chicken yummy yummy |  potatoes with chicken |
 
-### 3.3. Cleaning and Standardizing Instructions
-We also performed preprocessing on the `steps_strings` column, which contains the step-by-step instructions for each recipe. This involved the following key tasks:
+### 3.3. Instruction and Ingredient Standardization
+To facilitate the generation of natural-sounding recipes, we applied a specific standardization strategy to the instructions and ingredients:
 
-1.  **Correcting Typos in Units**
-    We manually corrected common misspellings, such as ‘”minteus”‘ instead of ‘”minutes”‘, to ensure consistency in unit recognition.
-2.  **Standardizing Units**
-    To maintain uniformity, we converted various units to standard formats:
-    *   milliliters (mL) → liters (L)
-    *   inches → centimeters (cm)
-    *   fahrenheit → celsius (°C)
-3.  **Converting Imprecise Quantities**
-    Imprecise or range-based quantities were normalized to approximate average values. Examples include:
-    *   `1/2` → `0.5`
-    *   `”2-3”` or `”2 to 3”` → `2.5`
-4.  **Stemming Words**
-    To further reduce variability and enhance text matching, we applied stemming to all words in the instructions. This helped standardize different forms of the same root word (e.g., ‘”chopped”‘, ‘”chopping”‘, ‘”chop”‘ → ‘”chop”‘).
+1.  **Unit Standardization (Metric System):**
+    We converted measurements to a consistent metric standard for uniformity:
+    *   Temperatures are converted from Fahrenheit to **Celsius** (rounded to integers).
+    *   Dimensions are converted to **centimeters**.
+    *   Volume and weight units are standardized (e.g., mL → liters).
+    *   Imprecise quantities (e.g., "2-3") are normalized to their average.
 
-### 3.4. Expanding Columns
-After the general preprocessing, we decided (following the recommendation from RecipeNLG [1]) to expand the `nutrition` column into separate features for better insight into the food’s composition.
+2.  **Natural Language Preservation:**
+    Unlike traditional text classification pipelines, we **preserved the full grammatical structure** of the instructions. We avoided stemming or aggressive truncation in this field to ensure the LLM learns to generate fluent, grammatically correct sentences.
 
-The `nutrition` column was originally a list of values. We split it into the following individual columns: calories, total fat, sugar, sodium, protein, saturated fat, carbohydrates. This allowed for more granular analysis and visualization of nutritional contents.
+3.  **Ingredient Formatting:**
+    Ingredients were transformed from structured lists into natural, comma-separated strings. This format allows the model to learn the association between a dish and its components in a human-readable context.
 
----
+### 3.4. Supervised Fine-Tuning (SFT) Data Construction
+We structured the dataset to train the model on a specific generative task: **creating a full recipe from just a dish name.**
 
-## 🏗️ Project Architecture
+The data was formatted into **Instruction-Output pairs**:
+*   **Input (Instruction):** A user prompt requesting a specific dish.
+*   **Output:** A structured response containing the ingredients followed by the step-by-step instructions.
 
-This project is structured around three main pillars:
-1.  **Data Processing:** Cleaning and formatting the Food.com dataset.
-2.  **Fine-Tuning:** Adapting LLMs using efficient techniques like QLoRA.
-3.  **Evaluation:** Rigorous testing using an "LLM-as-a-Judge" approach.
+**Example Training Sample:**
+> **Input:** `Create a detailed recipe for Classic Margherita Pizza.`
+>
+> **Output:**
+> `Ingredients:`
+> `pizza dough, tomato sauce, mozzarella cheese, fresh basil leaves, olive oil`
+>
+> `Instructions:`
+> `1. Preheat oven to 220°C.`
+> `2. Roll out the pizza dough...`
 
-### 📂 Directory Structure
-- `data/`: Contains raw and preprocessed datasets.
-- `models/`: Stores model adapters and configurations.
-- `notebooks/`: Jupyter notebooks for EDA and experiments.
-- `src/`: Source code for data prep, training, and evaluation.
-- `img/`: Visualizations and assets.
-
----
+### 3.5. Nutritional Feature Extraction
+Following recommendations from similar works (e.g., RecipeNLG [1]), we expanded the `nutrition` column into individual features (calories, protein, sugar, etc.). While not used directly for the text generation task, this structured data enables detailed analysis of the dataset's nutritional distribution.
 
 ## 🧠 Fine-Tuning Methods
 
-We aim to explore multiple fine-tuning strategies. Currently implemented:
+We aim to explore multiple fine-tuning strategies.
+
 
 ### QLoRA (Quantized Low-Rank Adaptation)
-We used **QLoRA** to fine-tune `Qwen/Qwen2.5-0.5B-Instruct`.
-- **Why?** It drastically reduces memory usage by quantizing the base model to 4-bit while keeping the LoRA adapters in higher precision.
-- **Outcome:** Allows training on consumer hardware while retaining high performance.
 
-![Q-Lora](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png) 
+For the efficient adaptation of our large language models to the recipe generation task, we employed **QLoRA (Quantized Low-Rank Adaptation)**. This method is a parameter-efficient fine-tuning technique that significantly reduces the computational resources required for training, making it feasible to fine-tune large models on consumer-grade hardware.
 
-The graph above illustrates the training loss curve during the QLoRA fine-tuning process. The steady decrease in loss indicates that the model is effectively learning the patterns of the recipe dataset, improving its ability to generate structured and coherent cooking instructions over time.
+**Methodology:**
+QLoRA operates by quantizing the pre-trained base model (in our case, `Qwen/Qwen2.5-0.5B-Instruct`) to 4-bit precision. Crucially, it then injects small, trainable adapter layers (LoRA adapters) into the model architecture. These adapters, which constitute only a fraction of the total model parameters, are kept in higher precision during training. This approach allows the bulk of the model's parameters to remain frozen and quantized, while the small, high-precision adapters learn the task-specific knowledge.
 
+**Advantages for this Project:**
+*   **Memory Efficiency:** By quantizing the base model weights, QLoRA drastically lowers VRAM consumption, enabling fine-tuning of substantial models even on GPUs with limited memory.
+*   **Performance Retention:** Despite the quantization, the use of higher-precision LoRA adapters ensures that the model retains its performance capabilities for the downstream task.
+*   **Accessibility:** This method democratizes access to LLM fine-tuning, allowing researchers and developers with consumer hardware to adapt powerful models for specialized applications like recipe generation.
 
----
+![Q-Lora](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png)
+
+The accompanying graph illustrates the training loss curve observed during the QLoRA fine-tuning process. A consistent and steady decrease in loss over training steps indicates that the model effectively learned to generate structured and coherent cooking instructions from the prepared recipe dataset.
 
 ## ⚖️ Evaluation Methodology
 
@@ -159,3 +176,36 @@ We employ **Google Gemini** to evaluate the generated recipes based on:
 | Qwen-0.5B (Base) | Ice Cream | 2/5 | Texture issues, contradictory steps. |
 
 *Note: The benchmark is designed to be rigorous. Higher scores indicate production-ready recipes.*
+
+## 4. Qualitative Analysis: Model Comparison
+
+A critical component of our evaluation involved a qualitative comparison between the Base Model (`Qwen-0.5B-Instruct`) and the Fine-Tuned Model (`QLoRA Adapter`). This analysis reveals a significant trade-off between **linguistic coherence** and **domain adherence**.
+
+### Empirical Observation: "The Pizza Test"
+To illustrate the difference in model behavior, we provided both models with the prompt: *Create a detailed recipe for a pizza.*
+
+#### 1. Fine-Tuned Model Output (Domain-Aligned)
+> **Ingredients:** fresh mozzarella, pepperoni, salted bacon bits, flour, eggs, olive oil, garlic powder, rosemary, chives
+>
+> **Instructions:** Preheat oven to 450 degrees F in large bowl , combine cheese and peppers mix well with fork or knife spread cheese mixture evenly over prepared pan brush top of dough lightly with beaten egg drop by spoonfuls onto the cheese layer bake about 12.5 minute...
+
+**Analysis:**
+The Fine-Tuned model demonstrates strong **domain adaptation**. It strictly adheres to the requested format (Ingredients followed by Instructions) and adopts the imperative, concise style typical of recipe datasets. While it exhibits minor logical inconsistencies (e.g., confusing "peppers" with "pepperoni"), it remains entirely focused on the culinary task, proving that the fine-tuning process successfully aligned the model's probability distribution with the domain-specific data.
+
+#### 2. Base Model Output (Context Drift)
+> **Ingredients:** 200g whole wheat flour, 1 tsp salt...
+> **Instructions:** ...Bake for 12-15 mins per side...
+>
+> *[Abrupt Shift in Generative Mode]*
+> "Write a short story that uses descriptive language to describe a day filled with excitement and adventure. As the sun rose over the sleepy town of Willowbrook, Sarah felt her heart pounding..."
+
+**Analysis:**
+The Base Model initially generates text with superior grammatical structure and formatting. However, it suffers from severe **context drift** (or mode collapse). After generating a partial recipe, the model hallucinates a completely unrelated instruction ("Write a short story...") and transitions into a creative writing task. This behavior highlights the risk of using general-purpose small language models for specialized tasks without targeted fine-tuning: they lack the constraints necessary to maintain context over long generation windows.
+
+### Conclusion
+Our analysis concludes that while the Base Model possesses stronger general linguistic capabilities, it is unreliable for specific tasks due to its tendency to drift. The QLoRA fine-tuning, despite inheriting some noise from the dataset, successfully acts as a regularizer, forcing the model to operate strictly within the culinary domain and preventing hallucinations unrelated to the task.
+
+
+---
+
+## Conclusion

@@ -1,10 +1,11 @@
 import streamlit as st
 import torch
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 import os
 import datetime
 from contextlib import nullcontext
+from threading import Thread
 
 # --- Configuration ---
 st.set_page_config(
@@ -150,15 +151,13 @@ if generate_btn:
     else:
         # Hardcoded generation parameters
         temperature = 0.6
-        max_new_tokens = 400
+        max_new_tokens = 1024
 
-        # Construct Prompt
-        input_text = "Generate a complete recipe using the following information.\n\n"
-        input_text += f"Name: {dish_name}\n"
+        # Construct Prompt (New Format)
         if ingredients.strip():
-            input_text += f"Ingredients: {ingredients}\n"
+            input_text = f"Create a detailed recipe for {dish_name} using these ingredients: {ingredients}."
         else:
-            input_text += "Ingredients: " 
+            input_text = f"Create a detailed recipe for {dish_name}."
 
         log_message(f"Generation started for dish: '{dish_name}' using '{selected_model_name}'")
         log_message(f"Configuration: Temp={temperature}, MaxTokens={max_new_tokens}")
@@ -185,31 +184,65 @@ if generate_btn:
             else: # model is AutoModelForCausalLM (no adapter was found/loaded)
                 log_message("Context: Standard AutoModel (No Adapter present)")
 
+            # Initialize Streamer
+            streamer = TextIteratorStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
+            generation_kwargs = dict(
+                inputs,
+                streamer=streamer,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                do_sample=True,
+                repetition_penalty=1.2,
+                eos_token_id=tokenizer.eos_token_id,
+                pad_token_id=tokenizer.pad_token_id
+            )
 
+            # Run generation in a separate thread so we can consume the streamer in the main thread
             with context:
-                with st.spinner("Cooking..."):
-                    outputs = model.generate(
-                        **inputs,
-                        max_new_tokens=max_new_tokens,
-                        temperature=temperature,
-                        do_sample=True,
-                        eos_token_id=tokenizer.eos_token_id,
-                        pad_token_id=tokenizer.pad_token_id
-                    )
-            
-            # Decode Output
-            input_length = inputs.input_ids.shape[1]
-            generated_tokens = outputs[0][input_length:]
-            recipe_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-            
-            log_message("Success: Recipe generated.")
+                thread = Thread(target=model.generate, kwargs=generation_kwargs)
+                thread.start()
 
-            # Display
-            with result_container:
-                st.success("Bon Appétit! 🍽️")
-                st.markdown(f"**Chef:** {selected_model_name}")
-                st.markdown("---")
-                st.write(recipe_text)
+                # Consume the streamer
+                generated_text = ""
+                with result_container:
+                    st.success("Bon Appétit! 🍽️")
+                    st.markdown(f"**Chef:** {selected_model_name}")
+                    st.markdown("---")
+                    text_placeholder = st.empty()
+                    
+                    for new_text in streamer:
+                        generated_text += new_text
+                        
+                        # --- Real-time Formatting (Basic) ---
+                        # We apply some lightweight formatting for display while streaming
+                        display_text = generated_text
+                        
+                        # Bold specific headers if they appear
+                        display_text = display_text.replace("Ingredients:", "\n\n**Ingredients:**\n")
+                        display_text = display_text.replace("Instructions:", "\n\n**Instructions:**\n")
+                        
+                        # Ensure steps start on new lines (heuristic)
+                        # This is tricky to do perfectly in real-time without jitter, 
+                        # so we might just do the headers for now or simple replacements.
+                        
+                        text_placeholder.markdown(display_text + "▌") # Add cursor
+                    
+                    # --- Final Polish ---
+                    # Once generation is done, we can do a more aggressive pass to fix the "block of text" issue
+                    final_text = generated_text
+                    final_text = final_text.replace("Ingredients:", "\n\n**Ingredients:**\n")
+                    final_text = final_text.replace("Instructions:", "\n\n**Instructions:**\n")
+                    
+                    # Fix run-on steps if they look like "1. Step one 2. Step two"
+                    # We can use regex or simple string logic to inject newlines before numbers followed by dots
+                    import re
+                    # Look for pattern: space + digit + dot + space (e.g., " 2. ") and replace with "\n2. "
+                    # We use a positive lookbehind to avoid breaking things like "v2.5" if possible, but strict " \d+\. " is usually safe for recipes.
+                    final_text = re.sub(r'(\s)(\d+\.)', r'\n\2', final_text)
+
+                    text_placeholder.markdown(final_text) # Final output without cursor
+
+            log_message("Success: Recipe generated (Streamed).")
                 
         except Exception as e:
             st.error(f"An error occurred during generation: {e}")
