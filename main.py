@@ -26,7 +26,6 @@ def main():
     print(f"Original Dataset Size: {len(full_dataset)}")
 
     # 1. QUALITY FILTER: Keep recipes with decent length (e.g., > 200 chars)
-    """
     # Short recipes are removed
     print("Filtering for detailed recipes...")
     full_dataset = full_dataset.filter(lambda x: len(x['output']) > 200)
@@ -82,6 +81,6 @@ def main():
         test_dataset=golden_dataset, 
         model_configs=competitors
     )
-    """
+
 if __name__ == "__main__":
     main()

@@ -24,6 +24,10 @@ Currently, the project features a **Qwen 2.5 0.5B** model fine-tuned using **QLo
 ### 2. Run the Pipeline (CLI)
 To run the full data processing, training, and benchmark pipeline:
 
+```bash
+python main.py
+```
+
 ### 3. Run the Application
 Start the interactive Streamlit dashboard to generate recipes:
 
@@ -32,12 +36,21 @@ streamlit run app.py
 ```
 You can choose between the **Base Model** (General purpose) and **Qwen (QLoRA)** (Specialized) via the sidebar.
 
+---
 
+## 🏗️ Project Architecture
 
-```bash
-python main.py
-```
+This project is structured around three main pillars:
+1.  **Data Processing:** Cleaning and formatting the dataset.
+2.  **Fine-Tuning:** Adapting LLMs using efficient techniques like QLoRA.
+3.  **Evaluation:** Rigorous testing using an "LLM-as-a-Judge" approach.
 
+### 📂 Directory Structure
+- `data/`: Contains raw and preprocessed datasets.
+- `models/`: Stores model adapters and configurations.
+- `notebooks/`: Jupyter notebooks for EDA and experiments.
+- `src/`: Source code for data prep, training, and evaluation.
+- `img/`: Visualizations and assets.
 ---
 
 ## 📊 Dataset & Exploratory Data Analysis (EDA)
@@ -86,8 +99,7 @@ We processed the recipe names to create concise and canonical titles. This invol
 
 | Original Title                | Normalized Title      |
 | :---------------------------- | :-------------------- |
-| OH MY GOD ITS SO AMAZINGGGGG  | potatoes with chicken |
-| potatoes with chicken yummy yummy | potatoes with chicken |
+| OH MY GOD ITS SO AMAZINGGGGG potatoes with chicken yummy yummy |  potatoes with chicken |
 
 ### 3.3. Instruction and Ingredient Standardization
 To facilitate the generation of natural-sounding recipes, we applied a specific standardization strategy to the instructions and ingredients:
@@ -126,39 +138,26 @@ The data was formatted into **Instruction-Output pairs**:
 ### 3.5. Nutritional Feature Extraction
 Following recommendations from similar works (e.g., RecipeNLG [1]), we expanded the `nutrition` column into individual features (calories, protein, sugar, etc.). While not used directly for the text generation task, this structured data enables detailed analysis of the dataset's nutritional distribution.
 
----
-
-## 🏗️ Project Architecture
-
-This project is structured around three main pillars:
-1.  **Data Processing:** Cleaning and formatting the Food.com dataset.
-2.  **Fine-Tuning:** Adapting LLMs using efficient techniques like QLoRA.
-3.  **Evaluation:** Rigorous testing using an "LLM-as-a-Judge" approach.
-
-### 📂 Directory Structure
-- `data/`: Contains raw and preprocessed datasets.
-- `models/`: Stores model adapters and configurations.
-- `notebooks/`: Jupyter notebooks for EDA and experiments.
-- `src/`: Source code for data prep, training, and evaluation.
-- `img/`: Visualizations and assets.
-
----
-
 ## 🧠 Fine-Tuning Methods
 
-We aim to explore multiple fine-tuning strategies. Currently implemented:
+We aim to explore multiple fine-tuning strategies.
+
 
 ### QLoRA (Quantized Low-Rank Adaptation)
-We used **QLoRA** to fine-tune `Qwen/Qwen2.5-0.5B-Instruct`.
-- **Why?** It drastically reduces memory usage by quantizing the base model to 4-bit while keeping the LoRA adapters in higher precision.
-- **Outcome:** Allows training on consumer hardware while retaining high performance.
 
-![Q-Lora](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png) 
+For the efficient adaptation of our large language models to the recipe generation task, we employed **QLoRA (Quantized Low-Rank Adaptation)**. This method is a parameter-efficient fine-tuning technique that significantly reduces the computational resources required for training, making it feasible to fine-tune large models on consumer-grade hardware.
 
-The graph above illustrates the training loss curve during the QLoRA fine-tuning process. The steady decrease in loss indicates that the model is effectively learning the patterns of the recipe dataset, improving its ability to generate structured and coherent cooking instructions over time.
+**Methodology:**
+QLoRA operates by quantizing the pre-trained base model (in our case, `Qwen/Qwen2.5-0.5B-Instruct`) to 4-bit precision. Crucially, it then injects small, trainable adapter layers (LoRA adapters) into the model architecture. These adapters, which constitute only a fraction of the total model parameters, are kept in higher precision during training. This approach allows the bulk of the model's parameters to remain frozen and quantized, while the small, high-precision adapters learn the task-specific knowledge.
 
+**Advantages for this Project:**
+*   **Memory Efficiency:** By quantizing the base model weights, QLoRA drastically lowers VRAM consumption, enabling fine-tuning of substantial models even on GPUs with limited memory.
+*   **Performance Retention:** Despite the quantization, the use of higher-precision LoRA adapters ensures that the model retains its performance capabilities for the downstream task.
+*   **Accessibility:** This method democratizes access to LLM fine-tuning, allowing researchers and developers with consumer hardware to adapt powerful models for specialized applications like recipe generation.
 
----
+![Q-Lora](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png)
+
+The accompanying graph illustrates the training loss curve observed during the QLoRA fine-tuning process. A consistent and steady decrease in loss over training steps indicates that the model effectively learned to generate structured and coherent cooking instructions from the prepared recipe dataset.
 
 ## ⚖️ Evaluation Methodology
 
@@ -177,3 +176,36 @@ We employ **Google Gemini** to evaluate the generated recipes based on:
 | Qwen-0.5B (Base) | Ice Cream | 2/5 | Texture issues, contradictory steps. |
 
 *Note: The benchmark is designed to be rigorous. Higher scores indicate production-ready recipes.*
+
+## 4. Qualitative Analysis: Model Comparison
+
+A critical component of our evaluation involved a qualitative comparison between the Base Model (`Qwen-0.5B-Instruct`) and the Fine-Tuned Model (`QLoRA Adapter`). This analysis reveals a significant trade-off between **linguistic coherence** and **domain adherence**.
+
+### Empirical Observation: "The Pizza Test"
+To illustrate the difference in model behavior, we provided both models with the prompt: *Create a detailed recipe for a pizza.*
+
+#### 1. Fine-Tuned Model Output (Domain-Aligned)
+> **Ingredients:** fresh mozzarella, pepperoni, salted bacon bits, flour, eggs, olive oil, garlic powder, rosemary, chives
+>
+> **Instructions:** Preheat oven to 450 degrees F in large bowl , combine cheese and peppers mix well with fork or knife spread cheese mixture evenly over prepared pan brush top of dough lightly with beaten egg drop by spoonfuls onto the cheese layer bake about 12.5 minute...
+
+**Analysis:**
+The Fine-Tuned model demonstrates strong **domain adaptation**. It strictly adheres to the requested format (Ingredients followed by Instructions) and adopts the imperative, concise style typical of recipe datasets. While it exhibits minor logical inconsistencies (e.g., confusing "peppers" with "pepperoni"), it remains entirely focused on the culinary task, proving that the fine-tuning process successfully aligned the model's probability distribution with the domain-specific data.
+
+#### 2. Base Model Output (Context Drift)
+> **Ingredients:** 200g whole wheat flour, 1 tsp salt...
+> **Instructions:** ...Bake for 12-15 mins per side...
+>
+> *[Abrupt Shift in Generative Mode]*
+> "Write a short story that uses descriptive language to describe a day filled with excitement and adventure. As the sun rose over the sleepy town of Willowbrook, Sarah felt her heart pounding..."
+
+**Analysis:**
+The Base Model initially generates text with superior grammatical structure and formatting. However, it suffers from severe **context drift** (or mode collapse). After generating a partial recipe, the model hallucinates a completely unrelated instruction ("Write a short story...") and transitions into a creative writing task. This behavior highlights the risk of using general-purpose small language models for specialized tasks without targeted fine-tuning: they lack the constraints necessary to maintain context over long generation windows.
+
+### Conclusion
+Our analysis concludes that while the Base Model possesses stronger general linguistic capabilities, it is unreliable for specific tasks due to its tendency to drift. The QLoRA fine-tuning, despite inheriting some noise from the dataset, successfully acts as a regularizer, forcing the model to operate strictly within the culinary domain and preventing hallucinations unrelated to the task.
+
+
+---
+
+## Conclusion

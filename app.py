@@ -90,7 +90,7 @@ def load_model_and_tokenizer(selected_model_key):
 
 # --- App Layout ---
 
-st.title("Gusteau, The CookBro")
+st.title("Gusteau, The CookBro 👨‍🍳")
 
 # Add Image under title
 if os.path.exists("assets/img/Gusteau.png"):
@@ -150,15 +150,15 @@ if generate_btn:
     else:
         # Hardcoded generation parameters
         temperature = 0.6
-        max_new_tokens = 400
+        max_new_tokens = 1024
 
-        # Construct Prompt
-        input_text = "Generate a complete recipe using the following information.\n\n"
-        input_text += f"Name: {dish_name}\n"
+        # Construct Prompt (New Format)
         if ingredients.strip():
-            input_text += f"Ingredients: {ingredients}\n"
+            # If user provides ingredients, we can try to incorporate them (though model was trained primarily on name)
+            # A hybrid prompt might work, or just appending them for context
+             input_text = f"Create a detailed recipe for {dish_name} using these ingredients: {ingredients}."
         else:
-            input_text += "Ingredients: " 
+            input_text = f"Create a detailed recipe for {dish_name}."
 
         log_message(f"Generation started for dish: '{dish_name}' using '{selected_model_name}'")
         log_message(f"Configuration: Temp={temperature}, MaxTokens={max_new_tokens}")
@@ -193,6 +193,7 @@ if generate_btn:
                         max_new_tokens=max_new_tokens,
                         temperature=temperature,
                         do_sample=True,
+                        repetition_penalty=1.2,
                         eos_token_id=tokenizer.eos_token_id,
                         pad_token_id=tokenizer.pad_token_id
                     )
@@ -201,6 +202,12 @@ if generate_btn:
             input_length = inputs.input_ids.shape[1]
             generated_tokens = outputs[0][input_length:]
             recipe_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+            
+            # --- Post-processing: Cut off hallucinations ---
+            stop_phrases = ["Human:", "User:", "Generate response:", "Can you", "Based on the passage", "###"]
+            for phrase in stop_phrases:
+                if phrase in recipe_text:
+                    recipe_text = recipe_text.split(phrase)[0]
             
             log_message("Success: Recipe generated.")
 
