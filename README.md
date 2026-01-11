@@ -60,8 +60,8 @@ Before training, we analyzed the dataset to understand the distribution of ingre
 
 | Metric | Visualization |
 | :--- | :--- |
-| **Ingredients per Cuisine** | ![Ingredients by Cuisine](img/eda/n_ingredients_by_cuisine.png) |
-| **Recipe Steps** | ![Steps Distribution](img/eda/n_steps_distribution.png) |
+| **Ingredients per Cuisine** | ![Ingredients by Cuisine](assets/eda/n_ingredients_by_cuisine.png) |
+| **Recipe Steps** | ![Steps Distribution](assets/eda/n_steps_distribution.png) |
 
 *(More visualizations available in `notebooks/EDA/`)*
 
@@ -134,7 +134,10 @@ We aim to explore multiple fine-tuning strategies. Currently implemented:
 We used **QLoRA** to fine-tune `Qwen/Qwen2.5-0.5B-Instruct`.
 - **Why?** It drastically reduces memory usage by quantizing the base model to 4-bit while keeping the LoRA adapters in higher precision.
 - **Outcome:** Allows training on consumer hardware while retaining high performance.
-- **Status:** **Implemented & Available**
+
+![Q-Lora](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png) 
+
+The graph above illustrates the training loss curve during the QLoRA fine-tuning process. The steady decrease in loss indicates that the model is effectively learning the patterns of the recipe dataset, improving its ability to generate structured and coherent cooking instructions over time.
 
 
 ---
