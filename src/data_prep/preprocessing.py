@@ -160,8 +160,8 @@ def standardize_units(text):
                 i += 2
                 continue
 
-        # Default: stem and append
-        result_words.append(ps.stem(correct_term(word)))
+        # Default: append word as is (no stemming)
+        result_words.append(correct_term(word))
         i += 1
 
     return " ".join(result_words)
@@ -198,8 +198,8 @@ def process_data(save=True):
     data["steps_strings"] = data["steps"].apply(lambda x : ' '.join(x))
     data["steps_string_standardize"] = data["steps_strings"].apply(standardize_units)
 
-    data["ingredients_text"] = data["ingredients"].apply(lambda x: ' '.join(x))
-    data["ingredients_text"] = data["ingredients"].astype(str)
+    # Join ingredients with commas for natural text
+    data["ingredients_text"] = data["ingredients"].apply(lambda x: ', '.join(x))
     
     data["tags"] = data["tags"].apply(
         lambda tags: [tag for tag in tags if not any(keyword in tag.lower() for keyword in ["minute", "time", "hours", "preparation"])]

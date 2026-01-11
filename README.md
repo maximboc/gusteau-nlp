@@ -69,44 +69,62 @@ Before training, we analyzed the dataset to understand the distribution of ingre
 
 ## 🧪 Preprocessing
 
-This section details the preprocessing steps applied to the dataset.
+This section details the preprocessing pipeline designed to transform raw data into a high-quality training set for Large Language Models.
 
-### 3.1. Removing Columns and Rows
-The first step in our preprocessing was to remove non-relevant columns for our exploratory data analysis (EDA). For example, we excluded the `contributor_id` column (which identifies the author of the recipe) and the `submitted` column which indicates the submission date, as they did not serve our analytical objectives.
+### 3.1. Filtering and Cleaning
+The first step involved cleaning the dataset to remove noise and outliers. We excluded non-relevant metadata columns (such as `contributor_id` and `submitted` date) to focus strictly on culinary content.
 
-Next, we removed recipes with a total preparation time greater or equal than 5 hours, considering them outliers. This step eliminated approximately 10,000 recipes from the original dataset of around 231,000 entries.
+Additionally, we filtered out recipes with extreme preparation times (≥ 5 hours), removing approximately 10,000 outliers from the original dataset of 231,000 entries to ensure the model focuses on standard home-cooking recipes.
 
-### 3.2. Lemmatizer & Stop-Word Removing
-We then lemmatized the text in the `name` column using the `WordNetLemmatizer` of the `nltk` library and removed stopwords. Additionally, we used a custom list of over 400 irrelevant or noisy words, such as names like "ashley" or "aston", to further clean the data.
+### 3.2. Title Normalization
+We processed the recipe names to create concise and canonical titles. This involved:
+*   **Lemmatization:** Using `WordNetLemmatizer` to normalize words.
+*   **Stop-word Removal:** Removing standard English stopwords.
+*   **Noise Filtering:** applying a custom exclusion list of over 400 non-descriptive terms (e.g., user names like "ashley", or emotional fillers like "yummy").
 
-**Examples of Name Cleaned into Concise Title**
+**Examples of Name Normalization**
 
-| Before Cleaning               | After Cleaning        |
+| Original Title                | Normalized Title      |
 | :---------------------------- | :-------------------- |
 | OH MY GOD ITS SO AMAZINGGGGG  | potatoes with chicken |
 | potatoes with chicken yummy yummy | potatoes with chicken |
 
-### 3.3. Cleaning and Standardizing Instructions
-We also performed preprocessing on the `steps_strings` column, which contains the step-by-step instructions for each recipe. This involved the following key tasks:
+### 3.3. Instruction and Ingredient Standardization
+To facilitate the generation of natural-sounding recipes, we applied a specific standardization strategy to the instructions and ingredients:
 
-1.  **Correcting Typos in Units**
-    We manually corrected common misspellings, such as ‘”minteus”‘ instead of ‘”minutes”‘, to ensure consistency in unit recognition.
-2.  **Standardizing Units**
-    To maintain uniformity, we converted various units to standard formats:
-    *   milliliters (mL) → liters (L)
-    *   inches → centimeters (cm)
-    *   fahrenheit → celsius (°C)
-3.  **Converting Imprecise Quantities**
-    Imprecise or range-based quantities were normalized to approximate average values. Examples include:
-    *   `1/2` → `0.5`
-    *   `”2-3”` or `”2 to 3”` → `2.5`
-4.  **Stemming Words**
-    To further reduce variability and enhance text matching, we applied stemming to all words in the instructions. This helped standardize different forms of the same root word (e.g., ‘”chopped”‘, ‘”chopping”‘, ‘”chop”‘ → ‘”chop”‘).
+1.  **Unit Standardization (Metric System):**
+    We converted measurements to a consistent metric standard for uniformity:
+    *   Temperatures are converted from Fahrenheit to **Celsius** (rounded to integers).
+    *   Dimensions are converted to **centimeters**.
+    *   Volume and weight units are standardized (e.g., mL → liters).
+    *   Imprecise quantities (e.g., "2-3") are normalized to their average.
 
-### 3.4. Expanding Columns
-After the general preprocessing, we decided (following the recommendation from RecipeNLG [1]) to expand the `nutrition` column into separate features for better insight into the food’s composition.
+2.  **Natural Language Preservation:**
+    Unlike traditional text classification pipelines, we **preserved the full grammatical structure** of the instructions. We avoided stemming or aggressive truncation in this field to ensure the LLM learns to generate fluent, grammatically correct sentences.
 
-The `nutrition` column was originally a list of values. We split it into the following individual columns: calories, total fat, sugar, sodium, protein, saturated fat, carbohydrates. This allowed for more granular analysis and visualization of nutritional contents.
+3.  **Ingredient Formatting:**
+    Ingredients were transformed from structured lists into natural, comma-separated strings. This format allows the model to learn the association between a dish and its components in a human-readable context.
+
+### 3.4. Supervised Fine-Tuning (SFT) Data Construction
+We structured the dataset to train the model on a specific generative task: **creating a full recipe from just a dish name.**
+
+The data was formatted into **Instruction-Output pairs**:
+*   **Input (Instruction):** A user prompt requesting a specific dish.
+*   **Output:** A structured response containing the ingredients followed by the step-by-step instructions.
+
+**Example Training Sample:**
+> **Input:** `Create a detailed recipe for Classic Margherita Pizza.`
+>
+> **Output:**
+> `Ingredients:`
+> `pizza dough, tomato sauce, mozzarella cheese, fresh basil leaves, olive oil`
+>
+> `Instructions:`
+> `1. Preheat oven to 220°C.`
+> `2. Roll out the pizza dough...`
+
+### 3.5. Nutritional Feature Extraction
+Following recommendations from similar works (e.g., RecipeNLG [1]), we expanded the `nutrition` column into individual features (calories, protein, sugar, etc.). While not used directly for the text generation task, this structured data enables detailed analysis of the dataset's nutritional distribution.
 
 ---
 

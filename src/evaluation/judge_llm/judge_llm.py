@@ -22,6 +22,7 @@ class BenchmarkResult:
     score: int
     reasoning: str
     recipe_length: int
+    judge_model: str
 
 def cleanup_resources():
     """
@@ -75,9 +76,10 @@ class RecipeBenchmark:
                 print("   -> Proceeding with Base Model only.")
 
     def extract_dish_name(self, instruction_text: str) -> str:
-        """Parses the instruction string to find 'Name: some dish name'"""
+        """Parses the instruction string to find the dish name."""
         try:
-            match = re.search(r"Name:\s*(.+)", instruction_text)
+            # Matches "Create a detailed recipe for {Dish Name}."
+            match = re.search(r"recipe for\s*(.+?)(?:\.|$)", instruction_text, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
             return "Unknown Dish"
@@ -142,7 +144,8 @@ class RecipeBenchmark:
                         generation_time=round(gen_time, 2),
                         score=judge.get('score', 0),
                         reasoning=judge.get('reasoning', 'Error'),
-                        recipe_length=len(recipe_text)
+                        recipe_length=len(recipe_text),
+                        judge_model=judge.get('judge_model', 'Unknown')
                     ))
 
             # --- 2. FINE-TUNED MODEL ---
@@ -157,7 +160,8 @@ class RecipeBenchmark:
                 generation_time=round(gen_time, 2),
                 score=judge.get('score', 0),
                 reasoning=judge.get('reasoning', 'Error'),
-                recipe_length=len(recipe_text)
+                recipe_length=len(recipe_text),
+                judge_model=judge.get('judge_model', 'Unknown')
             ))
 
         return results
@@ -176,7 +180,7 @@ def print_report(results: List[BenchmarkResult]):
 
         print("\n📝 Detailed Breakdown:")
         pd.set_option('display.max_colwidth', 50)
-        print(df[["model_name", "dish_name", "score", "reasoning"]])
+        print(df[["model_name", "judge_model", "dish_name", "score", "reasoning"]])
         
         output_file = "benchmark_results.csv"
         df.to_csv(output_file, index=False)
