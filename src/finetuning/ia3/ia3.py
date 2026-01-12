@@ -156,8 +156,8 @@ def ia3_finetuning(
     print(f"💾 Model will be saved to: {output_dir}")
     print("\nYou can stop training with Ctrl+C and resume later.\n")
     
-    trainer.train()
-    
+    trainer.train(resume_from_checkpoint=True)    
+
     # Save final model
     print("\n✅ Training complete! Saving model...")
     model.save_pretrained(output_dir)
