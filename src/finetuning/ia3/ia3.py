@@ -14,7 +14,8 @@ from transformers import (
 )
 from peft import get_peft_model, IA3Config, TaskType
 from tqdm import tqdm
-
+import os
+import glob
 
 def ia3_finetuning(
     model_name: str,
@@ -156,7 +157,15 @@ def ia3_finetuning(
     print(f"💾 Model will be saved to: {output_dir}")
     print("\nYou can stop training with Ctrl+C and resume later.\n")
     
-    trainer.train(resume_from_checkpoint=True)    
+    def get_last_checkpoint(output_dir):
+        checkpoints = glob.glob(os.path.join(output_dir, "checkpoint-*"))
+        if len(checkpoints):
+            return sorted(checkpoints, key=lambda x: int(x.split("-")[-1]))[-1]
+        return None
+
+    last_checkpoint = get_last_checkpoint(output_dir)
+
+    trainer.train(resume_from_checkpoint=last_checkpoint) 
 
     # Save final model
     print("\n✅ Training complete! Saving model...")
