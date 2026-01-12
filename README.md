@@ -140,7 +140,7 @@ Following recommendations from similar works (e.g., RecipeNLG [1]), we expanded 
 
 ## 🧠 Fine-Tuning Methods
 
-We aim to explore multiple fine-tuning strategies.
+We aim to explore multiple fine-tuning strategies. All models were trained on a **NVIDIA RTX 3060 (6GB)**.
 
 
 ### QLoRA (Quantized Low-Rank Adaptation)
@@ -155,11 +155,15 @@ QLoRA operates by quantizing the pre-trained base model (in our case, `Qwen/Qwen
 *   **Performance Retention:** Despite the quantization, the use of higher-precision LoRA adapters ensures that the model retains its performance capabilities for the downstream task.
 *   **Accessibility:** This method democratizes access to LLM fine-tuning, allowing researchers and developers with consumer hardware to adapt powerful models for specialized applications like recipe generation.
 
+**Training Time:** ~30 minutes.
+
 ![Q-Lora](assets/graphs/qlora-loss-curve.png)
 
 The accompanying graph illustrates the training loss curve observed during the QLoRA fine-tuning process. A consistent and steady decrease in loss over training steps indicates that the model effectively learned to generate structured and coherent cooking instructions from the prepared recipe dataset.
 
 ### IA3
+
+**Training Time:** ~3 hours and 10 minutes.
 
 ![IA3](assets/graphs/ia3-loss-curve.png)
 
