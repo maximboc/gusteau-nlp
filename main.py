@@ -1,4 +1,6 @@
 import random
+import os
+import torch # Needed to check CUDA availability
 from src.utils.utils_main import preprocessing
 from src.data_prep.conversion import dataset_conversion
 from src.finetuning.qlora.qlora import qlora_finetuning
@@ -6,7 +8,6 @@ from src.finetuning.prompt_tuning.prompt_tuning import prompt_tuning_finetuning
 from src.evaluation.judge_llm.judge_llm import run_llm_benchmark
 from src.evaluation.quantitative.quantitative import run_quantitative_benchmark
 from datasets import load_dataset
-import os
 
 def main():
 
@@ -21,20 +22,42 @@ def main():
     else:
         adapter_save_path = "models/qwen-recipe-prompt-tuning"
 
-    # Preprocessing of the Food.com dataset
+    # --- Step 1: Preprocessing ---
     print("--- Step 1: Preprocessing ---")
     data = preprocessing()
     
-    print("\n--- Step 2: Loading Dataset ---")
+    # --- Step 2: Conversion & Advanced Loading ---
+    print("\n--- Step 2: Loading & Curating Dataset ---")
     
+    # Convert CSV to JSONL
     dataset_conversion(data)
-    full_dataset = load_dataset("json", data_files=jsonl_path)["train"]
-    dataset_dict = full_dataset.train_test_split(test_size=0.05, seed=42)
-    train_dataset = dataset_dict["train"]
-    test_dataset = dataset_dict["test"]
-    print(f"Data loaded. Train size: {len(train_dataset)}, Test size: {len(test_dataset)}")
     
-    # Finetuning :
+    # Load the full dataset
+    full_dataset = load_dataset("json", data_files=jsonl_path)["train"]
+    print(f"Original Dataset Size: {len(full_dataset)}")
+
+    # 1. QUALITY FILTER: Keep recipes with decent length (e.g., > 200 chars)
+    # Short recipes are removed
+    print("Filtering for detailed recipes...")
+    full_dataset = full_dataset.filter(lambda x: len(x['output']) > 200)
+    print(f"Size after filtering short recipes: {len(full_dataset)}")
+
+    # 2. SHUFFLE: Randomize to ensure diversity
+    full_dataset = full_dataset.shuffle(seed=42)
+
+    # 3. SELECT SUBSET: 10,000 samples 
+    target_size = 10000
+    if len(full_dataset) > target_size:
+        full_dataset = full_dataset.select(range(target_size))
+        
+    # Split Train/Test
+    dataset_dict = full_dataset.train_test_split(test_size=0.05, seed=42)
+    
+    print(f"✨ Final Dataset Ready.")
+    print(f"Train size: {len(dataset_dict['train'])}")
+    print(f"Test size:  {len(dataset_dict['test'])}")
+    
+    # --- Step 3: Model Finetuning ---
     print("\n--- Step 3: Model Finetuning ---")
     
     if not os.path.exists(adapter_save_path):
@@ -50,12 +73,11 @@ def main():
     # Evaluating :
     print("\n--- Step 4: Benchmarking ---")
     
+    # Create a Golden Set from the UNSEEN test data
     random.seed(42) 
-    sample_size = min(3, len(test_dataset))
-    indices = random.sample(range(len(test_dataset)), sample_size)
-    golden_dataset = test_dataset.select(indices)
-    
-    print(f"✨ Golden Set Created: {len(golden_dataset)} recipes selected.")
+    sample_size = min(5, len(dataset_dict['test'])) # Increased to 5 for better sample
+    indices = random.sample(range(len(dataset_dict['test'])), sample_size)
+    golden_dataset = dataset_dict['test'].select(indices)
     
     competitors = [
         # Config A: The specific model you just trained
@@ -63,13 +85,7 @@ def main():
             "name": f"Qwen-0.5B ({FINETUNING_METHOD})", 
             "base": "Qwen/Qwen2.5-0.5B-Instruct", 
             "adapter": adapter_save_path 
-        },
-        # Config B: A larger base model for baseline comparison (Optional)
-        # {
-        #     "name": "Qwen-1.5B (Baseline)", 
-        #     "base": "Qwen/Qwen2.5-1.5B-Instruct", 
-        #     "adapter": None 
-        # },
+        }
     ]
 
     run_llm_benchmark(
