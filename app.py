@@ -25,7 +25,12 @@ MODELS_CONFIG = {
     "Qwen (QLoRA Fine-Tuned)": {
         "base_model_id": "Qwen/Qwen2.5-0.5B-Instruct",
         "adapter_path": "models/qwen-recipe-qlora",
-        "description": "Fine-tuned on recipe data for detailed recipe generation."
+        "description": "Fine-tuned on recipe data using QLoRA for detailed recipe generation."
+    },
+    "Qwen (IA3 Fine-Tuned)": {
+        "base_model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "adapter_path": "models/qwen-recipe-ia3",
+        "description": "Fine-tuned on recipe data using IA3 for detailed recipe generation, offering an alternative efficient fine-tuning method."
     },
     "Qwen 0.5B (Base)": {
         "base_model_id": "Qwen/Qwen2.5-0.5B-Instruct",
