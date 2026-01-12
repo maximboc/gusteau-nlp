@@ -144,6 +144,7 @@ We aim to explore multiple fine-tuning strategies. All models were trained on a 
 
 
 ### QLoRA (Quantized Low-Rank Adaptation)
+**Training Time:** ~30 minutes.
 
 For the efficient adaptation of our large language models to the recipe generation task, we employed **QLoRA (Quantized Low-Rank Adaptation)**. This method is a parameter-efficient fine-tuning technique that significantly reduces the computational resources required for training, making it feasible to fine-tune large models on consumer-grade hardware.
 
@@ -154,8 +155,6 @@ QLoRA operates by quantizing the pre-trained base model (in our case, `Qwen/Qwen
 *   **Memory Efficiency:** By quantizing the base model weights, QLoRA drastically lowers VRAM consumption, enabling fine-tuning of substantial models even on GPUs with limited memory.
 *   **Performance Retention:** Despite the quantization, the use of higher-precision LoRA adapters ensures that the model retains its performance capabilities for the downstream task.
 *   **Accessibility:** This method democratizes access to LLM fine-tuning, allowing researchers and developers with consumer hardware to adapt powerful models for specialized applications like recipe generation.
-
-**Training Time:** ~30 minutes.
 
 ![Q-Lora](assets/graphs/qlora-loss-curve.png)
 
