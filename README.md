@@ -205,7 +205,14 @@ The Base Model initially generates text with superior grammatical structure and 
 ### Conclusion
 Our analysis concludes that while the Base Model possesses stronger general linguistic capabilities, it is unreliable for specific tasks due to its tendency to drift. The QLoRA fine-tuning, despite inheriting some noise from the dataset, successfully acts as a regularizer, forcing the model to operate strictly within the culinary domain and preventing hallucinations unrelated to the task.
 
+## Contributions
 
----
-
-## Conclusion
+- EDA : Maxime
+- Finetuning
+    - Lora/Qlora => Maxime
+    - ia3 => Angela
+    - Prompt tuning => Baptiste and Khaled (pair-programming)
+- Evaluation 
+   - LLM as a judge => Aurélien and Max (pair-programming)
+   - Bleu-Score => Baptiste
+   - Custom metrics => Baptiste
