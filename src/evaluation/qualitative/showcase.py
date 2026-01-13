@@ -151,7 +151,7 @@ Recipe (with Ingredients and Instructions):"""
         out_base = res['base_output'].replace(res['instruction'], "").strip()
         block.append(out_base)
         
-        block.append("\n--- 3. FINE-TUNED MODEL (Prompt Tuning) ---")
+        block.append("\n--- 3. FINE-TUNED MODEL (Qlora) ---")
         out_tuned = res['tuned_output'].replace(f"Instruction: {res['instruction']}\n\nRecipe:", "").strip()
         block.append(out_tuned)
         
