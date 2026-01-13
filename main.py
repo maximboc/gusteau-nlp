@@ -9,6 +9,7 @@ from src.evaluation.judge_llm.judge_llm import run_llm_benchmark
 from src.evaluation.quantitative.quantitative import run_quantitative_benchmark
 from src.evaluation.constrained_generation.outlines_generation import run_constrained_benchmark
 from src.dspy_optimization.dspy_optimizer import check_dspy_optimization, run_dspy_benchmark
+from src.evaluation.qualitative.showcase import run_qualitative_showcase
 from datasets import load_dataset
 
 def main():
@@ -16,7 +17,7 @@ def main():
     # --- Configuration ---
     # Choose between "qlora" and "prompt_tuning"
     FINETUNING_METHOD = "prompt_tuning" 
-    ENABLE_DSPY = True # Enable DSPy Prompt Optimization
+    ENABLE_DSPY = False # Enable DSPy Prompt Optimization
     
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
     
@@ -100,16 +101,16 @@ def main():
     # )
 
     # 4.2 Quantitative Evaluation
-    run_quantitative_benchmark(
-         test_dataset=golden_dataset,
-         model_configs=competitors
-    )
+    # run_quantitative_benchmark(
+    #      test_dataset=golden_dataset,
+    #      model_configs=competitors
+    # )
 
     # 4.3 Outlines Constrained Generation
-    run_constrained_benchmark(
-        test_dataset=golden_dataset,
-        model_configs=competitors
-    )
+    # run_constrained_benchmark(
+    #     test_dataset=golden_dataset,
+    #     model_configs=competitors
+    # )
 
     # 4.4 DSPy Optimization & Generation
     if ENABLE_DSPY:
@@ -132,6 +133,15 @@ def main():
                 print("-" * 40)
         else:
             print("⚠️ DSPy optimization skipped")
+
+    # 4.5 Qualitative Showcase
+    print("\n--- Step 6: Qualitative Showcase ---")
+    run_qualitative_showcase(
+        dataset=golden_dataset,
+        base_model_id="Qwen/Qwen2.5-0.5B-Instruct",
+        adapter_path=adapter_save_path
+    )
+    
 
 
 if __name__ == "__main__":
