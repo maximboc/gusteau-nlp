@@ -45,8 +45,9 @@ def cleanup_resources():
             pass
 
 class RecipeBenchmark:
-    def __init__(self, base_model_id: str, adapter_path: Optional[str] = None):
+    def __init__(self, base_model_id: str, adapter_path: Optional[str] = None, adapter_type: str = "unknown"):
         self.device_kwargs, _ = get_device()
+        self.adapter_type = adapter_type
         print(f"🏗️ Initializing Benchmark with Base: {base_model_id}")
         
         # 1. Load Base Model
@@ -149,7 +150,10 @@ class RecipeBenchmark:
                     ))
 
             # --- 2. FINE-TUNED MODEL ---
-            model_label = "LoRA Fine-Tuned" if self.has_adapter else "Base Model Only"
+            if self.has_adapter:
+                model_label = f"{self.adapter_type.title()} Fine-Tuned"
+            else:
+                model_label = "Base Model Only"
             
             recipe_text, gen_time = self.generate_recipe(full_prompt)
             judge = judge_recipe(dish_name, recipe_text, model_label)
@@ -201,13 +205,16 @@ def run_llm_benchmark(test_dataset, model_configs: List[Dict]):
         adapter = config.get("adapter", None)
         
         print(f"\n" + "="*60)
-        print(f"🤖 CONFIGURATION: {model_name}")
-        print("="*60)
+            # 1. Clean Memory
+            cleanup_resources()
 
-        # 1. Clean Memory
-        cleanup_resources()
-
-        try:
+            try:
+                # Extract adapter type from model name (e.g., "Qwen-0.5B (prompt_tuning)" -> "prompt_tuning")
+                adapter_type = "unknown"
+                if "(" in model_name and ")" in model_name:
+                    adapter_type = model_name.split("(")[1].split(")")[0]
+                
+                bench = RecipeBenchmark(base_model_id=base_id, adapter_path=adapter, adapter_type=adapter_type)        try:
             bench = RecipeBenchmark(base_model_id=base_id, adapter_path=adapter)
             
             # IMPORTANT: Pass num_samples=None so it consumes the whole fixed set
