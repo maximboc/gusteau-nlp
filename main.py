@@ -61,14 +61,17 @@ def main():
     # --- Step 3: Model Finetuning ---
     print("\n--- Step 3: Model Finetuning ---")
     
-    if not os.path.exists(adapter_save_path):
+    # Check if adapter_config.json exists (not just the directory)
+    adapter_config_path = os.path.join(adapter_save_path, "adapter_config.json")
+    
+    if not os.path.exists(adapter_config_path):
         print(f"Starting {FINETUNING_METHOD} training...")
         if FINETUNING_METHOD == "qlora":
             qlora_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset_dict, output_dir=adapter_save_path)
         elif FINETUNING_METHOD == "prompt_tuning":
             prompt_tuning_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset_dict, output_dir=adapter_save_path)
     else:
-        print(f"Model found at '{adapter_save_path}'. Skipping training. (Delete folder to retrain)")
+        print(f"Trained adapter found at '{adapter_save_path}'. Skipping training. (Delete to retrain)")
     
     
     # Evaluating :

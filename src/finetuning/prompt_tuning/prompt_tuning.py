@@ -27,6 +27,9 @@ def prompt_tuning_finetuning(model_name, dataset, output_dir="models/qwen-recipe
     # --- 3. Prepare Model ---
     if use_qlora:
         model = prepare_model_for_kbit_training(model)
+    
+    # Enable gradient checkpointing before PEFT to save memory
+    model.gradient_checkpointing_enable()
 
     # Prompt Tuning Config
     # We use 8 virtual tokens and initialize them with a relevant text for better convergence
@@ -46,8 +49,9 @@ def prompt_tuning_finetuning(model_name, dataset, output_dir="models/qwen-recipe
     model.print_trainable_parameters()
 
     # --- 4. Tokenization function ---
+    # Reduce max_length to 512 to save memory (recipes can still fit reasonably)
     tokenized_dataset = dataset.map(
-        lambda x: format_example(x, tokenizer),
+        lambda x: format_example(x, tokenizer, max_length=512),
         batched=True,
         num_proc=os.cpu_count()
     )
@@ -57,16 +61,18 @@ def prompt_tuning_finetuning(model_name, dataset, output_dir="models/qwen-recipe
     # A standard LR for prompt tuning is 0.3 (much higher than LoRA's 2e-4)
     training_args = TrainingArguments(
         output_dir=output_dir,
-        per_device_train_batch_size=4, # Increase batch size as prompt tuning is lighter
-        gradient_accumulation_steps=4,
+        per_device_train_batch_size=1, # Reduced to 1 for memory constraints
+        gradient_accumulation_steps=16, # Increased to maintain effective batch size
         learning_rate=0.3, # Higher learning rate for Prompt Tuning
         logging_steps=10,
         save_steps=200,
-        num_train_epochs=4, # Often needs more epochs
+        num_train_epochs=3, # Reduced epochs for faster training
         bf16=(device_kwargs.get("torch_dtype")==torch.bfloat16),
         fp16=(device_kwargs.get("torch_dtype")==torch.float16),
         optim="paged_adamw_8bit" if use_qlora else "adamw_torch",
         report_to="none",
+        gradient_checkpointing=True, # Enable gradient checkpointing to save memory
+        max_grad_norm=0.3,
     )
 
     # --- 6. Trainer ---
