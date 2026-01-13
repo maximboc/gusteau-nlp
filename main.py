@@ -15,7 +15,7 @@ def main():
 
     # --- Configuration ---
     # Choose between "qlora" and "prompt_tuning"
-    FINETUNING_METHOD = "prompt_tuning" 
+    FINETUNING_METHOD = "qlora" 
     ENABLE_DSPY = True # Enable DSPy Prompt Optimization
     
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
@@ -115,23 +115,29 @@ def main():
     if ENABLE_DSPY:
         print("\n--- Step 5: DSPy Prompt Optimization ---")
         # Use the same HuggingFace model we're using for finetuning
-        dspy_program, _ = check_dspy_optimization(
+        dspy_program, dspy_lm = check_dspy_optimization(
             "Qwen/Qwen2.5-0.5B-Instruct", 
             dataset_dict,
             adapter_path=adapter_save_path
         )
         
-        if dspy_program is not None:
-            # Generate with DSPy
-            dspy_results = run_dspy_benchmark(golden_dataset, dspy_program)
+        if dspy_program is not None and dspy_lm is not None:
+            # Generate with DSPy (passing custom_lm for local models)
+            dspy_results = run_dspy_benchmark(golden_dataset, dspy_program, custom_lm=dspy_lm)
             
-            print("\nDSPy Sample Generations:")
-            for res in dspy_results:
-                print(f"Dish: {res['dish']}")
-                print(f"Recipe Length: {len(res['generated_recipe'])}")
-                print("-" * 40)
+            # Show sample output
+            if dspy_results:
+                print("\n📝 Sample DSPy Generation:")
+                sample = dspy_results[0]
+                print(f"Dish: {sample['dish'][:60]}...")
+                print(f"Generated Recipe Preview:")
+                print(sample['generated_recipe'][:300] + "..." if len(sample['generated_recipe']) > 300 else sample['generated_recipe'])
+                print("-" * 60)
         else:
-            print("⚠️ DSPy optimization skipped")
+            print("⚠️ DSPy optimization skipped or failed")
+    else:
+        print("\n--- Step 5: DSPy Optimization ---")
+        print("⚠️ DSPy disabled in configuration (ENABLE_DSPY=False)")
 
 
 if __name__ == "__main__":

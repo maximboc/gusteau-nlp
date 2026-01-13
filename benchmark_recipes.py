@@ -6,6 +6,7 @@ Shows the reference recipe and generated output side-by-side.
 import random
 from datasets import load_dataset
 from src.evaluation.judge_llm.judge_llm import RecipeBenchmark, cleanup_resources
+from src.evaluation.quantitative.recipe_metrics import RecipeMetricsEvaluator
 
 def run_recipe_comparison_benchmark(num_samples=3):
     """
@@ -59,6 +60,8 @@ def run_recipe_comparison_benchmark(num_samples=3):
         print(f"{'-'*100}")
         
         # Generate with each model
+        evaluator = RecipeMetricsEvaluator()
+        
         for model_config in models:
             print(f"\n🤖 {model_config['name'].upper()}:")
             print(f"{'-'*100}")
@@ -75,6 +78,15 @@ def run_recipe_comparison_benchmark(num_samples=3):
                 print(generated_text)
                 print(f"\n⏱️  Generation Time: {gen_time:.2f}s")
                 print(f"📏 Length: {len(generated_text)} characters")
+                
+                # Calculate recipe metrics
+                metrics = evaluator.evaluate(reference, generated_text)
+                
+                print(f"\n📊 RECIPE QUALITY METRICS:")
+                print(f"   Ingredient Coverage:  {metrics['ingredient_coverage']['score']:.3f} ({metrics['ingredient_coverage']['coverage_percentage']:.1f}% - {metrics['ingredient_coverage']['used_count']}/{metrics['ingredient_coverage']['total_count']} used)")
+                print(f"   Temperature Valid:    {metrics['temperature_validation']['score']:.3f} ({metrics['temperature_validation']['valid_count']} valid temps)")
+                print(f"   Allergen Handling:    {metrics['allergen_handling']['score']:.3f}")
+                print(f"   ⭐ Composite Score:    {metrics['composite_score']:.3f}/1.0")
                 print(f"{'-'*100}")
                 
                 # Cleanup

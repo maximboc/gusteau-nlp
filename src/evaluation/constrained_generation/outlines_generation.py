@@ -19,7 +19,6 @@ from src.evaluation.judge_llm.judge_llm import cleanup_resources
 
 try:
     import outlines
-    from outlines import generate
     OUTLINES_AVAILABLE = True
 except ImportError:
     OUTLINES_AVAILABLE = False
@@ -69,8 +68,8 @@ class ConstrainedRecipeBenchmark:
         self.outlines_model = None
         if OUTLINES_AVAILABLE:
             try:
-                # Outlines wraps the HF model
-                self.outlines_model = outlines.models.Transformers(
+                # Outlines wraps the HF model - new API
+                self.outlines_model = outlines.Transformers(
                     self.model,
                     self.tokenizer,
                 )
@@ -91,27 +90,34 @@ class ConstrainedRecipeBenchmark:
             start_time = time.time()
             
             # --- The Constraint ---
-            # We want the model to complete the prompt "Name: Dish\n\nRecipe:"
-            # with "Ingredients: ... \n\nInstructions: ..."
-            # We use a Regex to allow any text for ingredients and instructions, but enforce the headers.
-            # \s* matches optional whitespace. [\s\S]+? is non-greedy match for content.
+            # Outlines regex pattern to enforce: Ingredients: ... Instructions: ...
+            recipe_regex = r"Ingredients:\s*.+?\s*Instructions:\s*.+"
             
-            recipe_regex = r"Ingredients:[\s\S]+?\n\nInstructions:[\s\S]+"
+            # Use the Generator API to create constrained generation
+            from outlines.generator import get_regex_logits_processor
             
-            generator = generate.regex(
-                self.outlines_model,
-                recipe_regex,
-                sampler=outlines.samplers.multinomial(temperature=0.6)
-            )
+            # Correct signature: (backend_name, model, regex)
+            logits_processor = get_regex_logits_processor(None, self.outlines_model, recipe_regex)
             
-            # Outlines usually takes the prompt and continues it
-            # But the regex applies to the *whole* generation or strictly the continuation?
-            # outlines.generate.regex forces the GENERATED tokens to match the regex.
+            inputs = self.tokenizer(prompt_text, return_tensors="pt").to(self.model.device)
             
-            output = generator(prompt_text, max_tokens=400)
+            with torch.no_grad():
+                output = self.model.generate(
+                    **inputs,
+                    max_new_tokens=400,
+                    temperature=0.6,
+                    do_sample=True,
+                    logits_processor=[logits_processor]
+                )
+            
+            output_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
+            
+            # Remove the prompt from the output
+            if output_text.startswith(prompt_text):
+                output_text = output_text[len(prompt_text):].strip()
             
             generation_time = time.time() - start_time
-            return output, generation_time
+            return output_text, generation_time
             
         except Exception as e:
             print(f"   ❌ Constrained generation error: {e}")
