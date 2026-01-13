@@ -19,6 +19,7 @@ from src.evaluation.judge_llm.judge_llm import cleanup_resources
 
 try:
     import outlines
+    from outlines import generate
     OUTLINES_AVAILABLE = True
 except ImportError:
     OUTLINES_AVAILABLE = False
@@ -97,7 +98,7 @@ class ConstrainedRecipeBenchmark:
             
             recipe_regex = r"Ingredients:[\s\S]+?\n\nInstructions:[\s\S]+"
             
-            generator = outlines.generate.regex(
+            generator = generate.regex(
                 self.outlines_model,
                 recipe_regex,
                 sampler=outlines.samplers.multinomial(temperature=0.6)

@@ -14,3 +14,4 @@ matplotlib
 streamlit
 outlines
 python-dotenv
+dspy-ai

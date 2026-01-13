@@ -8,6 +8,7 @@ from src.finetuning.prompt_tuning.prompt_tuning import prompt_tuning_finetuning
 from src.evaluation.judge_llm.judge_llm import run_llm_benchmark
 from src.evaluation.quantitative.quantitative import run_quantitative_benchmark
 from src.evaluation.constrained_generation.outlines_generation import run_constrained_benchmark
+from src.dspy_optimization.dspy_optimizer import check_dspy_optimization, run_dspy_benchmark
 from datasets import load_dataset
 
 def main():
@@ -15,6 +16,7 @@ def main():
     # --- Configuration ---
     # Choose between "qlora" and "prompt_tuning"
     FINETUNING_METHOD = "prompt_tuning" 
+    ENABLE_DSPY = True # Enable DSPy Prompt Optimization
     
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
     
@@ -92,10 +94,10 @@ def main():
         }
     ]
 
-    run_llm_benchmark(
-        test_dataset=golden_dataset, 
-        model_configs=competitors
-    )
+    # run_llm_benchmark(
+    #     test_dataset=golden_dataset, 
+    #     model_configs=competitors
+    # )
 
     # 4.2 Quantitative Evaluation
     run_quantitative_benchmark(
@@ -108,6 +110,28 @@ def main():
         test_dataset=golden_dataset,
         model_configs=competitors
     )
+
+    # 4.4 DSPy Optimization & Generation
+    if ENABLE_DSPY:
+        print("\n--- Step 5: DSPy Prompt Optimization ---")
+        # Use the same HuggingFace model we're using for finetuning
+        dspy_program, _ = check_dspy_optimization(
+            "Qwen/Qwen2.5-0.5B-Instruct", 
+            dataset_dict,
+            adapter_path=adapter_save_path
+        )
+        
+        if dspy_program is not None:
+            # Generate with DSPy
+            dspy_results = run_dspy_benchmark(golden_dataset, dspy_program)
+            
+            print("\nDSPy Sample Generations:")
+            for res in dspy_results:
+                print(f"Dish: {res['dish']}")
+                print(f"Recipe Length: {len(res['generated_recipe'])}")
+                print("-" * 40)
+        else:
+            print("⚠️ DSPy optimization skipped")
 
 
 if __name__ == "__main__":
