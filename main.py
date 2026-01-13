@@ -7,6 +7,7 @@ from src.finetuning.qlora.qlora import qlora_finetuning
 from src.finetuning.prompt_tuning.prompt_tuning import prompt_tuning_finetuning
 from src.evaluation.judge_llm.judge_llm import run_llm_benchmark
 from src.evaluation.quantitative.quantitative import run_quantitative_benchmark
+from src.evaluation.constrained_generation.outlines_generation import run_constrained_benchmark
 from datasets import load_dataset
 
 def main():
@@ -97,6 +98,12 @@ def main():
     run_quantitative_benchmark(
          test_dataset=golden_dataset,
          model_configs=competitors
+    )
+
+    # 4.3 Outlines Constrained Generation
+    run_constrained_benchmark(
+        test_dataset=golden_dataset,
+        model_configs=competitors
     )
 
 

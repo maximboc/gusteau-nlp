@@ -205,17 +205,19 @@ def run_llm_benchmark(test_dataset, model_configs: List[Dict]):
         adapter = config.get("adapter", None)
         
         print(f"\n" + "="*60)
-            # 1. Clean Memory
-            cleanup_resources()
+        print(f"🤖 CONFIGURATION: {model_name}")
+        print("="*60)
 
-            try:
-                # Extract adapter type from model name (e.g., "Qwen-0.5B (prompt_tuning)" -> "prompt_tuning")
-                adapter_type = "unknown"
-                if "(" in model_name and ")" in model_name:
-                    adapter_type = model_name.split("(")[1].split(")")[0]
-                
-                bench = RecipeBenchmark(base_model_id=base_id, adapter_path=adapter, adapter_type=adapter_type)        try:
-            bench = RecipeBenchmark(base_model_id=base_id, adapter_path=adapter)
+        # 1. Clean Memory
+        cleanup_resources()
+
+        try:
+            # Extract adapter type from model name (e.g., "Qwen-0.5B (prompt_tuning)" -> "prompt_tuning")
+            adapter_type = "unknown"
+            if "(" in model_name and ")" in model_name:
+                adapter_type = model_name.split("(")[1].split(")")[0]
+            
+            bench = RecipeBenchmark(base_model_id=base_id, adapter_path=adapter, adapter_type=adapter_type)
             
             # IMPORTANT: Pass num_samples=None so it consumes the whole fixed set
             model_results = bench.run_comparison(test_dataset, num_samples=None)

@@ -12,3 +12,4 @@ ollama
 tqdm
 matplotlib
 streamlit
+outlines
