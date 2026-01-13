@@ -19,7 +19,6 @@ from src.evaluation.judge_llm.judge_llm import cleanup_resources
 
 try:
     import outlines
-    from outlines import generate
     OUTLINES_AVAILABLE = True
 except ImportError:
     OUTLINES_AVAILABLE = False
@@ -69,8 +68,8 @@ class ConstrainedRecipeBenchmark:
         self.outlines_model = None
         if OUTLINES_AVAILABLE:
             try:
-                # Outlines wraps the HF model
-                self.outlines_model = outlines.models.Transformers(
+                # Outlines wraps the HF model - new API
+                self.outlines_model = outlines.Transformers(
                     self.model,
                     self.tokenizer,
                 )
@@ -84,38 +83,46 @@ class ConstrainedRecipeBenchmark:
         Generates recipe using Outlines constrained generation.
         Enforces structure: Ingredients: ... Instructions: ...
         """
+        # Ensure regex format matches training prompt structure
+        # Training Format: "Instruction: {instruction}\n\nRecipe:"
+        # 'prompt_text' passed here is usually just the instruction text "Create a detailed recipe for X".
+        formatted_prompt = f"Instruction: {prompt_text}\n\nRecipe:"
+        
         if not OUTLINES_AVAILABLE or self.outlines_model is None:
-            return self.generate_recipe_standard(prompt_text)
+            return self.generate_recipe_standard(formatted_prompt)
 
         try:
             start_time = time.time()
             
             # --- The Constraint ---
-            # We want the model to complete the prompt "Name: Dish\n\nRecipe:"
-            # with "Ingredients: ... \n\nInstructions: ..."
-            # We use a Regex to allow any text for ingredients and instructions, but enforce the headers.
-            # \s* matches optional whitespace. [\s\S]+? is non-greedy match for content.
-            
+            # Outlines regex pattern to enforce stricter structure:
+            # 1. "Ingredients:" followed by non-empty content (at least one character)
+            # 2. Two newlines
+            # 3. "Instructions:" followed by non-empty content
             recipe_regex = r"Ingredients:[\s\S]+?\n\nInstructions:[\s\S]+"
+            # Note: The +? is non-greedy, so it tries to find the *first* occurrence of \n\nInstructions:
+            # This ensures we don't skip the Instructions header.
             
-            generator = generate.regex(
-                self.outlines_model,
-                recipe_regex,
-                sampler=outlines.samplers.multinomial(temperature=0.6)
-            )
+            # Using new outlines API: Generator(model, output_type)
+            constraint = outlines.regex(recipe_regex)
+            generator = outlines.Generator(self.outlines_model, constraint)
             
             # Outlines usually takes the prompt and continues it
-            # But the regex applies to the *whole* generation or strictly the continuation?
-            # outlines.generate.regex forces the GENERATED tokens to match the regex.
+            # The Generator.__call__ passes kwargs to the underlying sampler or model. 
+            # Transformers model.generate uses 'max_new_tokens' usually.
+            # Samplers are deprecated in newer outlines, we pass temperature directly.
             
-            output = generator(prompt_text, max_tokens=400)
+            output = generator(formatted_prompt, max_new_tokens=600, temperature=0.6)
+            
+            # Output is already a string (the completion)
+            output_text = output
             
             generation_time = time.time() - start_time
-            return output, generation_time
+            return output_text, generation_time
             
         except Exception as e:
             print(f"   ❌ Constrained generation error: {e}")
-            return self.generate_recipe_standard(prompt_text)
+            return self.generate_recipe_standard(formatted_prompt)
 
     def generate_recipe_standard(self, prompt_text: str) -> Tuple[str, float]:
         """

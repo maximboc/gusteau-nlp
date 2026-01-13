@@ -88,11 +88,12 @@ class RecipeBenchmark:
             return "Unknown Dish"
 
     def generate_recipe(self, prompt_text: str) -> tuple[str, float]:
-        """
-        Generates recipe using the FULL instruction prompt.
-        Returns (generated_text, time_taken)
-        """
-        inputs = self.tokenizer(prompt_text, return_tensors="pt").to(self.model.device)
+        # We must format the prompt EXACTLY as we did during training!
+        # Training format: "Instruction: {prompt_text}\n\nRecipe:"
+        # The 'prompt_text' argument here is already "Create a detailed recipe for X".
+        formatted_prompt = f"Instruction: {prompt_text}\n\nRecipe:"
+        
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.model.device)
         
         start_time = time.time()
         with torch.no_grad():

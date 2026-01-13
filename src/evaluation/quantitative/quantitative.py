@@ -11,6 +11,11 @@ try:
 except LookupError:
     nltk.download('punkt')
 
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab')
+
 def calculate_metrics(reference_text, generated_text):
     """
     Computes quantitative metrics:
