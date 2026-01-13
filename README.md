@@ -207,12 +207,12 @@ Our analysis concludes that while the Base Model possesses stronger general ling
 
 ## Contributions
 
-- EDA : Maxime
+- EDA : Maxim
 - Finetuning
-    - Lora/Qlora => Maxime
+    - Lora/Qlora => Maxim
     - ia3 => Angela
     - Prompt tuning => Baptiste and Khaled (pair-programming)
 - Evaluation 
-   - LLM as a judge => Aurélien and Max (pair-programming)
+   - LLM as a judge => Aurélien and Maxim (pair-programming)
    - Bleu-Score => Baptiste
    - Custom metrics => Baptiste
