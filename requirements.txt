@@ -13,3 +13,4 @@ tqdm
 matplotlib
 streamlit
 outlines
+dspy-ai
