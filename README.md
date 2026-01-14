@@ -819,18 +819,6 @@ Each dimension rated 1-10, then averaged for final score.
 
 ## 📈 Results & Analysis
 
-### Quantitative Performance
-
-*(To be filled after QLoRA retraining with corrected format)*
-
-| Model | BLEU | Similarity | Ingredient Coverage | Temp Valid | Composite Score |
-|-------|------|------------|---------------------|------------|-----------------|
-| Base Qwen-0.5B | - | - | - | - | - |
-| QLoRA (50M params) | - | - | - | - | - |
-| Prompt Tuning (6.4K params) | - | - | - | - | - |
-| + Outlines Constraint | - | - | - | - | - |
-| + DSPy Prompts | - | - | - | - | - |
-
 ### Qualitative Analysis: "The Pizza Test"
 
 We tested both base and fine-tuned models with the prompt: *"Create a detailed recipe for a pizza."*
