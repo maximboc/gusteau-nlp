@@ -893,6 +893,47 @@ drop by spoonfuls onto the cheese layer bake about 12.5 minute...
 
 ---
 
+# Recipe Generation Benchmark: QLoRA vs Prompt Tuning
+
+Both fine-tuning approaches show distinct trade-offs for recipe generation. QLoRA achieves a higher composite score (54.60% vs 47.42%), while Prompt Tuning excels in text similarity and generation reliability .
+
+## Performance Comparison
+
+| Metric               | QLoRA  | Prompt Tuning | Winner                       |
+| :------------------- | :----- | :------------ | :--------------------------- |
+| BLEU Score           | 0.0078 | 0.0224        | Prompt Tuning (2.87× higher) |
+| Similarity           | 31.1   | 46.1          | Prompt Tuning (+15 points)   |
+| Ingredients Coverage | 64.51% | 49.56%        | QLoRA (+15%)                 |
+| Temperature Accuracy | 60%    | 60%           | Tie                          |
+| Allergen Warnings    | 24%    | 18%           | QLoRA (+6%)                  |
+| Composite Score      | 54.60% | 47.42%        | QLoRA (+7.2%)                |
+| Generation Speed     | 6.84s  | 3.00s         | Prompt Tuning (2.28× faster) |
+| LLM Judge Score      | 6.0/10 | 5.8/10        | QLoRA (marginal)             |
+
+## Key Findings
+
+**BLEU \& Similarity**: Both models show very low BLEU scores (<0.03), typical for creative generation tasks where exact matches are rare. Prompt Tuning's 46.1% similarity score indicates it generates text semantically closer to reference recipes, while QLoRA's 31.1% suggests more divergent outputs.
+
+**Recipe Accuracy**: QLoRA's strongest advantage is ingredient coverage (64.51%), successfully including nearly two-thirds of reference ingredients. Both models struggle with allergen warnings (18-24%), indicating this safety information is poorly captured during training. Temperature accuracy remains identical at 60% for both approaches.
+
+**Reliability \& Speed**: Prompt Tuning generates recipes 2.28× faster (3.00s vs 6.84s) due to its parameter-efficient design. But the recipes generated are smaller, forgetting important information and details.
+
+**LLM judge** : Both models receive similar average ratings from the LLM judge (QLoRA: 6.0/10, Prompt Tuning: 5.8/10). The judge evaluations reveal consistent patterns :
+
+- **QLoRA's Weaknesses** include overly complicated ingredient lists with unusual spice combinations, lack of clear instruction sequencing, and excessive detail that makes recipes impractical for home cooks.
+
+- **Prompt Tuning's Weaknesses** center on oversimplification—recipes "lack detail and complexity" with "overly simplistic" instructions that omit crucial preparation steps.
+
+## Conclusion
+
+**QLoRA** demonstrates superior semantic understanding with better ingredient selection and allergen awareness, making it suitable when recipe accuracy is paramount. However, it suffers from slower generation.
+
+**Prompt Tuning** produces less accurate ingredient lists and weaker safety considerations.
+
+The recommended choice is clearly QLoRA.
+
+---
+
 ## 🚀 Usage & Setup
 
 ### Prerequisites
