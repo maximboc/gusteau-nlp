@@ -41,12 +41,12 @@ def ia3_finetuning(
         max_length: Maximum sequence length for tokenization
     """
     
-    print(f"🔧 Setting up IA³ fine-tuning for {model_name}")
-    print(f"📊 Training samples: {len(dataset_dict['train'])}")
-    print(f"📊 Test samples: {len(dataset_dict['test'])}")
+    print(f"Setting up IA³ fine-tuning for {model_name}")
+    print(f"Training samples: {len(dataset_dict['train'])}")
+    print(f"Test samples: {len(dataset_dict['test'])}")
     
     # Load tokenizer
-    print("\n1️⃣ Loading tokenizer...")
+    print("\nLoading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
     # Add padding token if needed
@@ -54,7 +54,7 @@ def ia3_finetuning(
         tokenizer.pad_token = tokenizer.eos_token
     
     # Load base model
-    print("2️⃣ Loading base model...")
+    print("Loading base model...")
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float32,  # Use float32 for CPU
@@ -63,7 +63,7 @@ def ia3_finetuning(
     )
     
     # Configure IA³
-    print("3️⃣ Configuring IA³ adapter...")
+    print("Configuring IA³ adapter...")
     
     # For Qwen models, target these modules
     ia3_config = IA3Config(
@@ -77,11 +77,11 @@ def ia3_finetuning(
     model = get_peft_model(model, ia3_config)
     
     # Print trainable parameters
-    print("\n📈 Trainable Parameters:")
+    print("\nTrainable Parameters:")
     model.print_trainable_parameters()
     
     # Prepare dataset for training
-    print("\n4️⃣ Preparing dataset...")
+    print("\nPreparing dataset...")
     
     def formatting_func(examples):
         """Format the dataset to match your existing structure"""
@@ -108,7 +108,7 @@ def ia3_finetuning(
             padding='max_length'
         )
     
-    print("   Tokenizing training data...")
+    print("Tokenizing training data...")
     train_dataset = train_dataset.map(
         tokenize_function,
         batched=True,
@@ -116,7 +116,7 @@ def ia3_finetuning(
     )
     
     # Set up training arguments (CPU-optimized)
-    print("\n5️⃣ Setting up training arguments...")
+    print("\nSetting up training arguments...")
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=num_epochs,
@@ -143,7 +143,7 @@ def ia3_finetuning(
     )
     
     # Create trainer
-    print("6️⃣ Creating trainer...")
+    print("Creating trainer...")
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -152,9 +152,9 @@ def ia3_finetuning(
     )
     
     # Train
-    print("\n🚀 Starting IA³ training...")
-    print(f"⏱️  Estimated time: Much faster than LoRA/QLoRA!")
-    print(f"💾 Model will be saved to: {output_dir}")
+    print("\nStarting IA³ training...")
+    print(f"Estimated time: Much faster than LoRA/QLoRA!")
+    print(f"Model will be saved to: {output_dir}")
     print("\nYou can stop training with Ctrl+C and resume later.\n")
     
     def get_last_checkpoint(output_dir):
@@ -168,12 +168,12 @@ def ia3_finetuning(
     trainer.train(resume_from_checkpoint=last_checkpoint) 
 
     # Save final model
-    print("\n✅ Training complete! Saving model...")
+    print("\nTraining complete! Saving model...")
     model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
     
-    print(f"\n✨ IA³ adapter saved to: {output_dir}")
-    print("📊 Training metrics saved in the output directory.")
+    print(f"\nIA³ adapter saved to: {output_dir}")
+    print("Training metrics saved in the output directory.")
     
     return model, tokenizer
 
@@ -189,7 +189,7 @@ def test_ia3_generation(model_name, adapter_path, test_prompt):
     """
     from peft import PeftModel
     
-    print(f"\n🧪 Testing IA³ model generation...")
+    print(f"\nTesting IA³ model generation...")
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name)
