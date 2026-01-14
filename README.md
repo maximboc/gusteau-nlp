@@ -510,6 +510,27 @@ These methods address different aspects of generation quality:
 
 Real-world systems combine all four. Our project demonstrates this holistic approach to LLM engineering.
 
+### 3. IA3 (Infused Adapter by Inhibiting and Amplifying Inner Activations)
+
+**Training Time:** ~1 hour.
+
+IA³ is an ultra-lightweight parameter-efficient fine-tuning method that works by injecting learnable scalar parameters into specific layers of the model. Unlike LoRA, which adds trainable low-rank matrices, IA³ uses element-wise scaling of intermediate activations, making it extremely memory-efficient while maintaining competitive performance.
+
+#### Methodology
+
+IA³ selectively modifies the model's internal computation by:
+
+1. Targeting specific attention and feed-forward modules (in Qwen: k_proj, v_proj, and down_proj)
+2. Injecting learnable scaling factors that amplify or inhibit the information flowing through these layers
+3. Keeping the base model frozen while training only these minimal scalar parameters
+
+
+![IA3](assets/graphs/ia3-loss-curve.png)
+
+### Comparison: QLoRA vs IA³ Loss Curves
+
+Comparing the training loss curves of both methods reveals important trade-offs between convergence speed and training efficiency. The **QLoRA loss curve** demonstrates faster initial convergence, reaching lower loss values within the first 30 minutes of training, reflecting the effectiveness of its low-rank adaptation approach. In contrast, the **IA³ loss curve** exhibits a more gradual descent initially but stabilizes at a comparable loss level after extended training. Despite the longer absolute training time, IA³'s loss trajectory is smooth and consistent, indicating stable learning without oscillations. The key insight is that while **QLoRA converges faster**, IA³'s ultra-lightweight parameter footprint makes it ideal for resource-constrained environments. Both methods achieve similar final loss values, suggesting that for recipe generation, either approach is viable depending on whether speed or memory efficiency is prioritized.
+
 ---
 
 ## ⚖️ Evaluation Methodology
