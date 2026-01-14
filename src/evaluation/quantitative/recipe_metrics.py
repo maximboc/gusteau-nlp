@@ -76,7 +76,10 @@ class IngredientCoverageMetric:
     @staticmethod
     def extract_ingredients(text: str) -> List[str]:
         """
-        Extract ingredient names from text (assumes format: ingredient1, ingredient2, ...)
+        Extract ingredient names from text.
+        Handles both:
+        - Python list format: ['item1', 'item2'] (from reference)
+        - Comma-separated: item1, item2 (from generated)
         """
         # Look for "Ingredients:" section
         ingredient_match = re.search(
@@ -86,11 +89,23 @@ class IngredientCoverageMetric:
         )
         
         if ingredient_match:
-            ingredients_text = ingredient_match.group(1)
-            # Split by comma or newline
-            ingredients = re.split(r'[,\n]', ingredients_text)
-            # Clean up whitespace and filter empty
-            ingredients = [ing.strip().lower() for ing in ingredients if ing.strip()]
+            ingredients_text = ingredient_match.group(1).strip()
+            
+            # Check if it's a Python list format (starts with [ or contains [')
+            if ingredients_text.startswith('[') or "['" in ingredients_text:
+                # Parse Python list string: ['item1', 'item2', ...]
+                # Extract items between quotes
+                ingredients = re.findall(r"'([^']+)'", ingredients_text)
+            else:
+                # Comma-separated format
+                ingredients = re.split(r'[,\n]', ingredients_text)
+            
+            # Clean up: remove whitespace, quotes, brackets, lowercase
+            ingredients = [
+                ing.strip().lower().strip("'[]\"")
+                for ing in ingredients
+                if ing.strip() and ing.strip() not in ["[]", "['']", "''"]
+            ]
             return ingredients
         
         return []
@@ -101,15 +116,33 @@ class IngredientCoverageMetric:
         """
         Calculate ingredient coverage: what % of listed ingredients appear in instructions?
         """
-        # Normalize reference ingredients
-        ref_ingr = [ing.lower() for ing in reference_ingredients]
+        # Normalize reference ingredients and extract core terms
+        ref_ingr = [ing.lower().strip() for ing in reference_ingredients]
         gen_text_lower = generated_text.lower()
         
         used_ingredients = []
         for ingredient in ref_ingr:
-            # Check if ingredient or its variants appear in the text
-            # Use word boundaries to avoid partial matches
+            # Extract core ingredient name (first significant word)
+            # e.g., "fresh basil leaves" -> check for "basil"
+            core_words = [w for w in ingredient.split() if len(w) > 2]
+            
+            # Check if full ingredient or core words appear in text
+            found = False
+            
+            # First try exact ingredient match
             if re.search(r'\b' + re.escape(ingredient) + r'\b', gen_text_lower):
+                found = True
+            # Then try matching core words (avoid too-generic matches)
+            elif core_words:
+                for word in core_words:
+                    # Skip common words
+                    if word in ['cup', 'cups', 'tsp', 'tbsp', 'tablespoon', 'teaspoon', 'ounce', 'oz', 'gram', 'fresh', 'dried', 'ground']:
+                        continue
+                    if re.search(r'\b' + re.escape(word) + r'\b', gen_text_lower):
+                        found = True
+                        break
+            
+            if found:
                 used_ingredients.append(ingredient)
         
         unused_ingredients = [ing for ing in ref_ingr if ing not in used_ingredients]
@@ -150,10 +183,11 @@ class TemperatureValidationMetric:
         """
         temperatures = []
         
-        # Pattern for: "X degrees C/F" or "X°C/F" or "X C/F"
+        # Pattern for: "X degrees C/F" or "X°C/F" or "X C/F" or "X celsius/fahrenheit"
         patterns = [
             r'(\d+\.?\d*)\s*(?:degrees?|°)\s*([CF])',  # "180 degrees C" or "180°F"
             r'(\d+\.?\d*)\s*([CF])\b',  # "180C" or "350F"
+            r'(\d+\.?\d*)\s*(?:degrees?)?\s*(celsius|fahrenheit)',  # "180 celsius" or "350 degrees fahrenheit"
         ]
         
         for pattern in patterns:
@@ -162,8 +196,13 @@ class TemperatureValidationMetric:
                 try:
                     temp_value = float(match.group(1))
                     unit = match.group(2).upper()
+                    # Normalize 'celsius' -> 'C', 'fahrenheit' -> 'F'
+                    if unit.startswith('C'):
+                        unit = 'C'
+                    elif unit.startswith('F'):
+                        unit = 'F'
                     temperatures.append((temp_value, unit))
-                except ValueError:
+                except (ValueError, IndexError):
                     pass
         
         return temperatures
@@ -352,11 +391,12 @@ class RecipeMetricsEvaluator:
         temperature_result = self.temperature_metric.score_temperatures(generated_text)
         allergen_result = self.allergen_metric.score_allergen_handling(generated_text, ref_ingredients)
         
-        # Composite score (equal weighting)
+        # Composite score (weighted by importance)
+        # Ingredient coverage is most critical (40%), temperature safety (40%), allergen awareness (20%)
         composite_score = (
-            ingredient_result.score * 0.33 +
-            temperature_result.score * 0.33 +
-            allergen_result.score * 0.34
+            ingredient_result.score * 0.40 +
+            temperature_result.score * 0.40 +
+            allergen_result.score * 0.20
         )
         
         return {

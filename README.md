@@ -7,6 +7,30 @@
 **Gusteau** is an NLP project that fine-tunes small language models to generate complete cooking recipes from dish names. We explore **parameter-efficient fine-tuning** (QLoRA, Prompt Tuning) and **inference-time techniques** (Outlines, DSPy) to transform a general-purpose 0.5B instruction model into a specialized culinary assistant.
 
 ---
+## 👥 Contributors
+
+This project was developed as part of an NLP course at EPITA.
+
+**Team Members:**
+- Angela SAADE
+- Aurelien DAUDIN
+- Baptiste ARNOLD
+- Khaled MILLI
+- Maxim Bocquillon
+
+## Project Contributions
+
+| Category | Task / Method | Contributor(s) | Notes |
+| :--- | :--- | :--- | :--- |
+| **EDA** | Exploratory Data Analysis | Maxim | |
+| **Finetuning** | Lora / Qlora | Maxim | |
+| | ia3 | Angela | |
+| | Prompt tuning | Baptiste & Khaled | Pair-programming |
+| **Evaluation** | LLM as a judge | Aurélien & Maxim | Pair-programming |
+| | Bleu-Score | Baptiste & Khaled | Pair-programming |
+| | Similarity | Baptiste & Khaled| Pair-programming |
+
+---
 
 ## 📖 Table of Contents
 
@@ -522,10 +546,52 @@ BLEU ≈ 0.65
 - **BLEU > 0.3:** Generally acceptable for recipe generation
 - **BLEU < 0.2:** Significant deviation
 
-**Limitations for Recipes:**
-- ❌ Penalizes valid paraphrases ("mix" vs "stir" vs "combine")
-- ❌ Doesn't understand semantics ("350°F" vs "175°C" scored as different)
-- ❌ Reference-dependent (valid recipe scored low if phrased differently)
+**Why BLEU is Too Rigid for Recipe Evaluation:**
+
+BLEU was designed for machine translation where there's typically one correct translation. However, recipes have inherent flexibility that BLEU cannot capture:
+
+**Problem 1: Penalizes Valid Cooking Variations**
+```
+Reference:  "mix the flour and sugar together"
+Generated:  "combine flour with sugar"
+BLEU Score: ~0.20 (LOW) ❌
+
+Reality: Both instructions are equally valid!
+```
+
+**Problem 2: Ignores Semantic Equivalence**
+```
+Reference:  "bake at 350°F for 25 minutes"
+Generated:  "bake at 175°C for 25 minutes"
+BLEU Score: ~0.40 (MEDIUM) ❌
+
+Reality: 350°F = 175°C → Identical instruction!
+```
+
+**Problem 3: Misses Critical Recipe Errors**
+```
+Reference:  "add eggs, flour, sugar, butter"
+Generated:  "add eggs, flour, sugar" (missing butter!)
+BLEU Score: ~0.75 (HIGH) ✅ but recipe is incomplete!
+
+Reality: Missing ingredients make recipe unusable!
+```
+
+**Problem 4: Can't Detect Safety Issues**
+```
+Generated:  "bake at 500°C" (dangerous!)
+BLEU Score: May be high if other words match
+
+Reality: Temperature would burn food and cause fire hazard!
+```
+
+**The Fundamental Issue:**
+
+BLEU measures **surface-level similarity** (word overlap) but ignores **culinary correctness** (ingredient usage, safe temperatures, logical steps). A recipe could have:
+- High BLEU → But be dangerous, incomplete, or illogical
+- Low BLEU → But be perfectly valid with different phrasing
+
+**This is why we developed Recipe-Specific Domain Metrics** (see Section 2 below) that evaluate what actually matters: ingredient coverage, temperature safety, and allergen awareness.
 
 #### 1.2 Similarity Score (Levenshtein Distance)
 
@@ -556,9 +622,20 @@ Similarity: ~93/100
 **Why Both BLEU and Similarity:**
 - **BLEU** → Word-level precision (vocabulary overlap)
 - **Similarity** → Character-level distance (structural similarity)
-- Together → Complementary views of textual closeness
+- **Limitation:** Both are surface-level metrics that don't evaluate culinary correctness
+
+**Note:** While we report BLEU and Similarity for completeness, they have significant limitations for recipe generation (see BLEU limitations above). Our primary evaluation relies on **Recipe-Specific Domain Metrics** below.
 
 ### 2. Recipe-Specific Domain Metrics
+
+**Why We Built These:**
+
+Traditional NLP metrics (BLEU, Similarity) measure **textual similarity** but ignore **culinary quality**. They can't answer critical questions like:
+- ❓ Are all ingredients actually used in the recipe?
+- ❓ Are cooking temperatures safe and realistic?
+- ❓ Does the recipe acknowledge allergens or offer substitutions?
+
+To properly evaluate recipe generation, we developed **three domain-specific validators** that assess what actually matters in cooking:
 
 Standard NLP metrics miss **culinary quality**. We designed three validators:
 
@@ -662,6 +739,33 @@ composite_score = (
 - **Allergen handling (20%):** Valuable but not always applicable
 
 Result: **Single score (0-1)** representing culinary quality.
+
+**Why Recipe-Specific Metrics Matter:**
+
+Unlike BLEU/Similarity which only measure surface-level text similarity, these metrics evaluate **actual recipe quality**:
+
+| Aspect | BLEU/Similarity | Recipe Metrics |
+|--------|----------------|----------------|
+| **Can detect missing ingredients** | ❌ No | ✅ Yes (Ingredient Coverage) |
+| **Can detect dangerous temperatures** | ❌ No | ✅ Yes (Temperature Validation) |
+| **Can validate recipe logic** | ❌ No | ✅ Yes (Combined metrics) |
+| **Rewards semantic equivalence** | ❌ No ("mix" ≠ "stir") | ✅ Yes (both valid) |
+| **Evaluates safety** | ❌ No | ✅ Yes (temp ranges) |
+| **Measures usability** | ❌ No | ✅ Yes (completeness) |
+
+**Example Comparison:**
+
+```
+Generated Recipe: "Add eggs, flour, sugar. Bake at 500°C for 5 minutes."
+
+BLEU Score: 0.65 (HIGH) → Suggests good quality ❌
+Recipe Metrics:
+  - Ingredient Coverage: 1.0 (all ingredients mentioned) ✅
+  - Temperature Validation: 0.0 (500°C is dangerous!) ❌
+  - Composite Score: 0.40 (POOR) → Correctly identifies problem ✅
+```
+
+This is why we prioritize Recipe-Specific Domain Metrics over traditional NLP metrics for evaluating our models.
 
 ### 3. LLM-as-a-Judge (Gemini)
 
@@ -909,5 +1013,17 @@ This project was developed as part of an NLP course at EPITA.
 - Aurelien DAUDIN
 - Baptiste ARNOLD
 - Khaled MILLI
+- Maxim Bocquillon
+## Project Contributions
+
+| Category | Task / Method | Contributor(s) | Notes |
+| :--- | :--- | :--- | :--- |
+| **EDA** | Exploratory Data Analysis | Maxim | |
+| **Finetuning** | Lora / Qlora | Maxim | |
+| | ia3 | Angela | |
+| | Prompt tuning | Baptiste & Khaled | Pair-programming |
+| **Evaluation** | LLM as a judge | Aurélien & Maxim | Pair-programming |
+| | Bleu-Score | Baptiste | |
+| | Custom metrics | Baptiste | |
 
 ---

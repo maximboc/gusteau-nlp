@@ -101,16 +101,16 @@ def main():
     # )
 
     # 4.2 Quantitative Evaluation
-    # run_quantitative_benchmark(
-    #      test_dataset=golden_dataset,
-    #      model_configs=competitors
-    # )
+    run_quantitative_benchmark(
+         test_dataset=golden_dataset,
+         model_configs=competitors
+    )
 
     # 4.3 Outlines Constrained Generation
-    # run_constrained_benchmark(
-    #     test_dataset=golden_dataset,
-    #     model_configs=competitors
-    # )
+    run_constrained_benchmark(
+        test_dataset=golden_dataset,
+        model_configs=competitors
+    )
 
     # 4.4 DSPy Optimization & Generation
     if ENABLE_DSPY:
