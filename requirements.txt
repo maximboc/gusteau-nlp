@@ -9,5 +9,9 @@ transformers
 bitsandbytes
 google.generativeai
 ollama
+tqdm
 matplotlib
 streamlit
+outlines
+python-dotenv
+dspy-ai

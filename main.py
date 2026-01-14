@@ -4,12 +4,27 @@ import torch # Needed to check CUDA availability
 from src.utils.utils_main import preprocessing
 from src.data_prep.conversion import dataset_conversion
 from src.finetuning.qlora.qlora import qlora_finetuning
+from src.finetuning.prompt_tuning.prompt_tuning import prompt_tuning_finetuning
 from src.evaluation.judge_llm.judge_llm import run_llm_benchmark
+from src.evaluation.quantitative.quantitative import run_quantitative_benchmark
+from src.evaluation.constrained_generation.outlines_generation import run_constrained_benchmark
+from src.dspy_optimization.dspy_optimizer import check_dspy_optimization, run_dspy_benchmark
+from src.evaluation.qualitative.showcase import run_qualitative_showcase
 from datasets import load_dataset
 
 def main():
+
+    # --- Configuration ---
+    # Choose between "qlora" and "prompt_tuning"
+    FINETUNING_METHOD = "qlora" 
+    ENABLE_DSPY = False # Enable DSPy Prompt Optimization
+    
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
-    adapter_save_path = "models/qwen-recipe-qlora"
+    
+    if FINETUNING_METHOD == "qlora":
+        adapter_save_path = "models/qwen-recipe-qlora2"
+    else:
+        adapter_save_path = "models/qwen-recipe-prompt-tuning"
 
     # --- Step 1: Preprocessing ---
     print("--- Step 1: Preprocessing ---")
@@ -48,19 +63,21 @@ def main():
     
     # --- Step 3: Model Finetuning ---
     print("\n--- Step 3: Model Finetuning ---")
-
-    if not os.path.exists(adapter_save_path):
-        print(f"Starting QLoRA training on {len(dataset_dict['train'])} examples...")
-        
-        qlora_finetuning(
-            "Qwen/Qwen2.5-0.5B-Instruct", 
-            dataset_dict, 
-            output_dir=adapter_save_path
-        )
+    
+    # Check if adapter_config.json exists (not just the directory)
+    adapter_config_path = os.path.join(adapter_save_path, "adapter_config.json")
+    
+    if not os.path.exists(adapter_config_path):
+        print(f"Starting {FINETUNING_METHOD} training...")
+        if FINETUNING_METHOD == "qlora":
+            qlora_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset_dict, output_dir=adapter_save_path)
+        elif FINETUNING_METHOD == "prompt_tuning":
+            prompt_tuning_finetuning("Qwen/Qwen2.5-0.5B-Instruct", dataset_dict, output_dir=adapter_save_path)
     else:
-        print(f"Model found at '{adapter_save_path}'. Skipping training.")
-
-    # --- Step 4: Benchmarking ---
+        print(f"Trained adapter found at '{adapter_save_path}'. Skipping training. (Delete to retrain)")
+    
+    
+    # Evaluating :
     print("\n--- Step 4: Benchmarking ---")
     
     # Create a Golden Set from the UNSEEN test data
@@ -70,17 +87,68 @@ def main():
     golden_dataset = dataset_dict['test'].select(indices)
     
     competitors = [
+        # Config A: The specific model you just trained
         {
-            "name": "Qwen-0.5B (Recipe Tuned)", 
+            "name": f"Qwen-0.5B ({FINETUNING_METHOD})", 
             "base": "Qwen/Qwen2.5-0.5B-Instruct", 
             "adapter": adapter_save_path 
         }
     ]
 
-    run_llm_benchmark(
-        test_dataset=golden_dataset, 
+    # run_llm_benchmark(
+    #     test_dataset=golden_dataset, 
+    #     model_configs=competitors
+    # )
+
+    # 4.2 Quantitative Evaluation
+    run_quantitative_benchmark(
+         test_dataset=golden_dataset,
+         model_configs=competitors
+    )
+
+    # 4.3 Outlines Constrained Generation
+    run_constrained_benchmark(
+        test_dataset=golden_dataset,
         model_configs=competitors
     )
+
+    # 4.4 DSPy Optimization & Generation
+    if ENABLE_DSPY:
+        print("\n--- Step 5: DSPy Prompt Optimization ---")
+        # Use the same HuggingFace model we're using for finetuning
+        dspy_program, dspy_lm = check_dspy_optimization(
+            "Qwen/Qwen2.5-0.5B-Instruct", 
+            dataset_dict,
+            adapter_path=adapter_save_path
+        )
+        
+        if dspy_program is not None and dspy_lm is not None:
+            # Generate with DSPy (passing custom_lm for local models)
+            dspy_results = run_dspy_benchmark(golden_dataset, dspy_program, custom_lm=dspy_lm)
+            
+            # Show sample output
+            if dspy_results:
+                print("\n📝 Sample DSPy Generation:")
+                sample = dspy_results[0]
+                print(f"Dish: {sample['dish'][:60]}...")
+                print(f"Generated Recipe Preview:")
+                print(sample['generated_recipe'][:300] + "..." if len(sample['generated_recipe']) > 300 else sample['generated_recipe'])
+                print("-" * 60)
+        else:
+            print("⚠️ DSPy optimization skipped or failed")
+    else:
+        print("\n--- Step 5: DSPy Optimization ---")
+        print("⚠️ DSPy disabled in configuration (ENABLE_DSPY=False)")
+
+    # 4.5 Qualitative Showcase
+    print("\n--- Step 6: Qualitative Showcase ---")
+    run_qualitative_showcase(
+        dataset=golden_dataset,
+        base_model_id="Qwen/Qwen2.5-0.5B-Instruct",
+        adapter_path=adapter_save_path
+    )
+    
+
 
 if __name__ == "__main__":
     main()

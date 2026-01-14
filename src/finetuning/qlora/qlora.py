@@ -53,11 +53,12 @@ def qlora_finetuning(model_name, dataset, output_dir="models/qwen-recipe-qlora")
     model.config.use_cache = False 
 
     # Reduced rank and targets for VRAM efficiency
+    # UPDATED: Target all linear layers for better performance on 0.5B model
     lora_config = LoraConfig(
         r=16,
         lora_alpha=32,
         lora_dropout=0.05,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, lora_config)
@@ -65,13 +66,12 @@ def qlora_finetuning(model_name, dataset, output_dir="models/qwen-recipe-qlora")
 
     # --- 5. Formatting ---
     def formatting_func(example):
-        messages = [
-            {"role": "user", "content": example['instruction']},
-            {"role": "assistant", "content": example['output']}
-        ]
-        text = tokenizer.apply_chat_template(messages, tokenize=False)
-        # Max length increased to 1024 to handle ingredients + steps
-        return tokenizer(text, max_length=1024, truncation=True)
+        # UPDATED: Use the exact same prompt format as evaluation/inference
+        # This ensures the model learns the format we actually test on.
+        prompt = f"Instruction: {example['instruction']}\n\nRecipe:"
+        full_text = prompt + " " + example['output'] + tokenizer.eos_token
+        
+        return tokenizer(full_text, max_length=1024, truncation=True)
 
     print("Tokenizing and formatting dataset...")
     tokenized_dataset = dataset.map(
