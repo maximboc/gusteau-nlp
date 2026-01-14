@@ -15,8 +15,8 @@ This project was developed as part of an NLP course at EPITA.
 - Angela SAADE
 - Aurelien DAUDIN
 - Baptiste ARNOLD
-- Khaled MILLI
-- Maxim Bocquillon
+- Khaled MILI
+- Maxim BOCQUILLION
 
 ## Project Contributions
 
@@ -29,6 +29,7 @@ This project was developed as part of an NLP course at EPITA.
 | **Evaluation** | LLM as a judge | Aurélien & Maxim | Pair-programming |
 | | Bleu-Score | Baptiste & Khaled | Pair-programming |
 | | Similarity | Baptiste & Khaled| Pair-programming |
+| | Domain specific metric | Aurélien | |
 
 ---
 
@@ -1000,30 +1001,5 @@ python src/evaluation/qualitative/showcase.py
 [4] [DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines](https://arxiv.org/abs/2310.03714) - Khattab et al., 2023
 
 [5] [Outlines - Structured Text Generation](https://github.com/outlines-dev/outlines)
-
----
-
-
-## 👥 Contributors
-
-This project was developed as part of an NLP course at EPITA.
-
-**Team Members:**
-- Angela SAADE
-- Aurelien DAUDIN
-- Baptiste ARNOLD
-- Khaled MILLI
-- Maxim Bocquillon
-## Project Contributions
-
-| Category | Task / Method | Contributor(s) | Notes |
-| :--- | :--- | :--- | :--- |
-| **EDA** | Exploratory Data Analysis | Maxim | |
-| **Finetuning** | Lora / Qlora | Maxim | |
-| | ia3 | Angela | |
-| | Prompt tuning | Baptiste & Khaled | Pair-programming |
-| **Evaluation** | LLM as a judge | Aurélien & Maxim | Pair-programming |
-| | Bleu-Score | Baptiste | |
-| | Custom metrics | Baptiste | |
 
 ---
