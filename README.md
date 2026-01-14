@@ -274,7 +274,7 @@ Our initial QLoRA used ChatML format (`<|im_start|>user...`), causing the model 
 
 **Training Results:**
 
-![QLoRA Loss Curve](assets/graphs/qwen2.5-0.5b-qlora-loss-curve.png)
+![QLoRA Loss Curve](assets/graphs/qlora-loss-curve.png.png)
 
 **Advantages:**
 - ✅ Sufficient capacity to learn new prompt formats (50M params)
