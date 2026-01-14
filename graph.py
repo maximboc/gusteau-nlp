@@ -2,7 +2,7 @@ import json
 import matplotlib.pyplot as plt
 
 # Update this path to your specific output folder
-log_path = "models/qwen-recipe-qlora/trainer_state.json"
+log_path = "models/qwen-recipe-ia3/trainer_state.json"
 
 with open(log_path, 'r') as f:
     data = json.load(f)
