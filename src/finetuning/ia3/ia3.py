@@ -2,6 +2,7 @@
 src/finetuning/ia3/ia3.py
 
 IA³ fine-tuning implementation that integrates with the existing project structure.
+GPU-optimized version with dtype consistency fixes.
 """
 
 import torch
@@ -12,7 +13,7 @@ from transformers import (
     Trainer,
     DataCollatorForLanguageModeling
 )
-from peft import get_peft_model, IA3Config, TaskType
+from peft import get_peft_model, IA3Config, TaskType, PeftModel
 from tqdm import tqdm
 import os
 import glob
@@ -22,8 +23,8 @@ def ia3_finetuning(
     dataset_dict,
     output_dir: str = "models/qwen-recipe-ia3",
     num_epochs: int = 3,
-    batch_size: int = 1,
-    gradient_accumulation_steps: int = 8,
+    batch_size: int = 4,  # Increased for GPU
+    gradient_accumulation_steps: int = 4,  # Adjusted for GPU
     learning_rate: float = 5e-4,
     max_length: int = 512,
 ):
@@ -45,6 +46,9 @@ def ia3_finetuning(
     print(f"Training samples: {len(dataset_dict['train'])}")
     print(f"Test samples: {len(dataset_dict['test'])}")
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"\n🔥 Using device: {device.upper()}")
+    
     # Load tokenizer
     print("\nLoading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -55,11 +59,15 @@ def ia3_finetuning(
     
     # Load base model
     print("Loading base model...")
+    
+    # CRITICAL: Use bfloat16 for GPU training to match inference dtype
+    torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float32,  # Use float32 for CPU
-        device_map="auto",  # Auto handles CPU/GPU
-        trust_remote_code=True  # Needed for some models like Qwen
+        torch_dtype=torch_dtype,  # Match inference dtype
+        device_map="auto",
+        trust_remote_code=True
     )
     
     # Configure IA³
@@ -115,8 +123,15 @@ def ia3_finetuning(
         remove_columns=['text']
     )
     
-    # Set up training arguments (CPU-optimized)
+    # Set up training arguments (GPU-optimized)
     print("\nSetting up training arguments...")
+    
+    # Determine if bf16 is available
+    use_bf16 = device == "cuda" and torch.cuda.is_bf16_supported()
+    use_fp16 = device == "cuda" and not use_bf16
+    
+    print(f"Mixed precision: bf16={use_bf16}, fp16={use_fp16}")
+    
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=num_epochs,
@@ -127,13 +142,14 @@ def ia3_finetuning(
         logging_steps=50,
         save_steps=500,
         save_total_limit=2,
-        fp16=False,  # No mixed precision on CPU
-        bf16=False,
-        dataloader_num_workers=0,  # Important for CPU
-        report_to="none",  # Disable wandb/tensorboard
+        bf16=use_bf16,  # Use bfloat16 if available
+        fp16=use_fp16,  # Fallback to fp16
+        dataloader_num_workers=2 if device == "cuda" else 0,  # More workers for GPU
+        report_to="none",
         remove_unused_columns=False,
         gradient_checkpointing=False,  # Usually not needed for IA³
-        optim="adamw_torch",  # Standard optimizer
+        optim="adamw_torch",
+        max_grad_norm=1.0,  # Gradient clipping
     )
     
     # Data collator
@@ -187,19 +203,21 @@ def test_ia3_generation(model_name, adapter_path, test_prompt):
         adapter_path: Path to IA³ adapter
         test_prompt: Test instruction to generate recipe
     """
-    from peft import PeftModel
-    
     print(f"\nTesting IA³ model generation...")
+    
+    # Detect device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    # Load base model
+    # Load base model with same dtype as training
     base_model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float32,
+        torch_dtype=torch_dtype,  # CRITICAL: Match training dtype
         device_map="auto",
         trust_remote_code=True
     )
@@ -208,7 +226,7 @@ def test_ia3_generation(model_name, adapter_path, test_prompt):
     model = PeftModel.from_pretrained(base_model, adapter_path)
     
     # Generate
-    inputs = tokenizer(test_prompt, return_tensors="pt")
+    inputs = tokenizer(test_prompt, return_tensors="pt").to(model.device)
     
     with torch.no_grad():
         outputs = model.generate(
