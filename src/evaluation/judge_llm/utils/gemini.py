@@ -4,6 +4,10 @@ import json
 import google.generativeai as genai
 import ollama
 from typing import Dict, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 MODEL_STATE = {
     'exhausted_models': set(),
@@ -73,16 +77,20 @@ def judge_recipe(dish_name: str, recipe_content: str, chef_name: str) -> Dict:
         if is_model_available(model):
             try:
                 m = genai.GenerativeModel(model)
-                # Request JSON response type for easier parsing
+                # Request JSON response type for easier parsing with timeout
                 resp = m.generate_content(
                     prompt, 
-                    generation_config={"response_mime_type": "application/json"}
+                    generation_config={
+                        "response_mime_type": "application/json",
+                        "temperature": 0.7
+                    },
+                    request_options={"timeout": 30}
                 )
                 result = json.loads(resp.text)
                 result["judge_model"] = model
                 return result
             except Exception as e:
-                print(f"⚠️ {model} failed or quota exceeded. Switching...")
+                print(f"⚠️ {model} failed or quota exceeded: {str(e)[:100]}. Switching...")
                 MODEL_STATE["exhausted_models"].add(model)
                 MODEL_STATE["model_cooldowns"][model] = time.time()
 
