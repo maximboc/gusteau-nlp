@@ -23,7 +23,7 @@ def main():
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
     
     if FINETUNING_METHOD == "qlora":
-        adapter_save_path = "models/qwen-recipe-qlora2"
+        adapter_save_path = "models/qwen-recipe-qlora"
     elif FINETUNING_METHOD == "prompt_tuning":
         adapter_save_path = "models/qwen-recipe-prompt-tuning"
     else:

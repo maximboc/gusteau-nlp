@@ -24,7 +24,7 @@ def log_message(message):
 MODELS_CONFIG = {
     "Qwen (QLoRA Fine-Tuned)": {
         "base_model_id": "Qwen/Qwen2.5-0.5B-Instruct",
-        "adapter_path": "models/qwen-recipe-qlora2",
+        "adapter_path": "models/qwen-recipe-qlora",
         "description": "Fine-tuned on recipe data using QLoRA for detailed recipe generation."
     },
     "Qwen (IA3 Fine-Tuned)": {
