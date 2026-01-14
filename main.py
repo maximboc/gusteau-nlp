@@ -16,8 +16,8 @@ from datasets import load_dataset
 def main():
 
     # --- Configuration ---
-    # Choose between "qlora" and "prompt_tuning"
-    FINETUNING_METHOD = "qlora" 
+    # Choose between "qlora", "ia3" and "prompt_tuning"
+    FINETUNING_METHOD = "prompt_tuning" 
     ENABLE_DSPY = False # Enable DSPy Prompt Optimization
     
     jsonl_path = "data/preprocessed/recipes_instructions.jsonl"
@@ -99,23 +99,23 @@ def main():
             "adapter": adapter_save_path 
         }
     ]
+    if FINETUNING_METHOD != "ia3":
+        run_llm_benchmark(
+             test_dataset=golden_dataset, 
+             model_configs=competitors
+        )
+    
+        # 4.2 Quantitative Evaluation
+        run_quantitative_benchmark(
+            test_dataset=golden_dataset,
+            model_configs=competitors
+        )
 
-    # run_llm_benchmark(
-    #     test_dataset=golden_dataset, 
-    #     model_configs=competitors
-    # )
-
-    # 4.2 Quantitative Evaluation
-    run_quantitative_benchmark(
-         test_dataset=golden_dataset,
-         model_configs=competitors
-    )
-
-    # 4.3 Outlines Constrained Generation
-    run_constrained_benchmark(
-        test_dataset=golden_dataset,
-        model_configs=competitors
-    )
+        # 4.3 Outlines Constrained Generation
+        run_constrained_benchmark(
+            test_dataset=golden_dataset,
+            model_configs=competitors
+        )
     
     print("\n✅ Benchmarking complete!")
 
